@@ -54,7 +54,7 @@ body {
 .hero-desc { font-size: 22px; line-height: 1.7; color: var(--tx-muted); margin: 0 0 28px; max-width: 18em; }
 .hero-cta { display: inline-flex; }
 /* 「使い方を読む」の下に置くショートカット一覧（2026-09-13、ツールバー直上から移設）。
-   .related-row-labelと同じ「小さい太字ラベル＋淡色の中身」の見せ方に揃える。 */
+   小さい太字ラベル＋淡色の中身、という見せ方にする。 */
 .hero-shortcuts { margin-top: 20px; }
 .hero-shortcuts-title { font-size: 12px; font-weight: 600; color: var(--tx-muted-2); margin-bottom: 6px; }
 .hero-shortcuts ul { list-style: none; margin: 0; padding: 0; font-size: 12.5px; line-height: 1.9; color: var(--tx-muted); }
@@ -95,39 +95,6 @@ body {
 .mock-dot { width: 4px; height: 4px; border-radius: 50%; background: #b9bdc5; flex: none; }
 .mock-code { height: 26px; border-radius: 6px; background: #f0f1f3; border-left: 3px solid #d7dade; }
 
-/* ── 派生アプリ3枚 ── */
-.related-row-label { margin-top: 22px; font-size: 12px; font-weight: 600; color: var(--tx-muted-2); }
-/* 2026-09、sidenote-pdf・sidenote-pdf-docがこのアプリへ統合され、残るツールはsidenote-pdf-web
-   1枚だけになったため、3列グリッドではなく1枚だけ幅を持たせるflexにする。 */
-.related-row { margin-top: 10px; display: flex; gap: 10px; }
-.related-row .related-card { flex: 0 1 220px; }
-.related-card {
-  display: block; border: 1px solid var(--tx-border); border-radius: 10px; padding: 12px 14px;
-  background: #fff; text-decoration: none; color: inherit;
-  transition: background .15s;
-}
-/* リンクだと分かるよう、名前の右に矢印を添える（→はhoverで右へ少し動く）。
-   2026-09-12、罫線・影で囲む見せ方をやめ、ボタン（.btn-outline:hover）と同じ背景の
-   ティントだけに統一（囲まれる感じが好みでないという指摘を受けて変更）。 */
-.related-card:hover { background: #f4f4f5; }
-.related-card:hover .related-card-arrow { transform: translateX(2px); color: var(--tx-text); }
-/* 派生アプリ名は最長で「ウェブ用Markdown作成版」。カード幅（3列で1枚167px）に1行で収める
-   ため12pxにしている（折り返すとカードごとに高さが揃わず、行の見た目が崩れる）。 */
-.related-card-name {
-  font-size: 12px; font-weight: 600; color: var(--tx-text);
-  display: flex; align-items: center; justify-content: space-between; gap: 6px;
-}
-.related-card-arrow { width: 13px; height: 13px; flex: none; color: var(--tx-muted-2); transition: transform .15s, color .15s; }
-.related-card-desc { font-size: 11.5px; color: var(--tx-muted-2); margin-top: 4px; line-height: 1.6; }
-.related-card-soon { background: #fafafa; }
-.related-card-soon .related-card-name, .related-card-soon .related-card-desc { color: #a3a3a3; }
-/* 名前の行ではなく説明の下に置く（名前の行に同居させると名前が折り返す）。 */
-.soon-badge {
-  display: inline-block; margin-top: 8px;
-  font-size: 10px; font-weight: 500; color: var(--tx-muted-2); background: #f2f2f2;
-  border-radius: 999px; padding: 1px 8px;
-}
-
 /* ── ボタン共通（templexの黒塗り/白抜き2種） ── */
 .btn-outline, .btn-primary {
   font-size: 14px; height: 40px; padding: 0 16px; border-radius: var(--tx-radius-btn);
@@ -142,16 +109,8 @@ body {
 /* ツールバーのボタンはラベルの長さに関わらず幅を揃える（旧デザインの踏襲）。
    幅は最長ラベル「続きから再開」に合わせる。6個×118px+gap8pxで900px幅に収まる。 */
 .toolbar .btn-outline, .toolbar .btn-primary, .toolbar .filebtn2 { width: 118px; }
-/* カードは3枚横並びのまま。ノートPCの幅（〜1250px）では1枚160px前後まで痩せるので、
-   文字と内側の余白だけ少し詰めて長い名前を収める。 */
-@media (max-width: 1250px) {
-  .related-card { padding: 10px 11px; }
-  .related-card-name { font-size: 11.5px; }
-  .related-card-desc { font-size: 11px; }
-}
 @media (max-width: 860px) {
   .hero-inner { grid-template-columns: 1fr; gap: 32px; }
-  .related-row .related-card { flex: 1 1 auto; }
   .hero-title { font-size: 30px; }
 }
 /* スマホは左右の余白を詰める（PC基準の40px×2は画面の1/4近くを占めて狭く見えるため）。
@@ -164,8 +123,9 @@ body {
   .theme-grid { grid-template-columns: repeat(2, 1fr); max-width: none; }
 }
 
-/* このアプリはボタンが8つ（本体は6つ）あるため、共通の118pxだと900px幅に収まらず折り返す。
-   最長ラベル「続きから再開」が入る範囲で少しだけ詰める（8×104px＋gap8px×7＝888px）。 */
+/* 共通の118pxだと900px幅に収まらず折り返すため、最長ラベル「続きから再開」が入る範囲で
+   少しだけ詰める（新しい作業/続きから再開/開く/.json/.md/.pdfの6個＋右端の固定チェックボックス
+   2つが900px内に収まる幅。設定・デザインは2026-09にこの行から移設・廃止済み）。 */
 .toolbar .btn-outline, .toolbar .btn-primary, .toolbar .filebtn2 { width: 104px; }
 
 /* 文章が長くなるとボタンに手が届かなくなるため、メニュー1（ファイル操作）・メニュー2（書式）は
@@ -177,16 +137,14 @@ body {
   max-width: 900px; margin: 0 auto 16px; padding-top: 48px;
 }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; align-items: center; background: #f4f5f7; }
-/* #toolbarMenu1は常にposition:relativeにしておき（.menu-pin-togglesの絶対配置の基準）、
-   固定オンの間だけ.menu-stickyでposition:stickyに切り替える（どちらもabsolute子の基準になれる）。 */
-#toolbarMenu1 { position: relative; }
 #toolbarMenu1.menu-sticky { position: sticky; top: 8px; z-index: 20; }
 #formatToolbar.menu-sticky { position: sticky; top: 56px; z-index: 19; }
-/* ボタン列（flexで折り返す）とは別に、右上の余白（.toolbar-stickyのpadding-top）へ絶対配置する。
-   #toolbarMenu1の子なので、メニュー1固定時は一緒に画面上部へ追従し、固定中もチェックを外せる。 */
-.menu-pin-toggles { position: absolute; top: -34px; right: 0; display: flex; gap: 12px; }
+/* ボタン列の右端に置く（設定ボタンを廃止した分の余白に収まる）。margin-left:autoで押し出すため、
+   折り返した場合はそのラインの右端に来る。 */
+.menu-pin-toggles { display: flex; gap: 8px; margin-left: auto; }
 .menu-pin-toggle {
-  display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--tx-muted-2); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--tx-muted-2); cursor: pointer;
+  white-space: nowrap;
 }
 .menu-pin-toggle input { flex: none; }
 
@@ -237,22 +195,6 @@ body {
 .dropdown-close .icon { width: 12px; height: 12px; }
 .settings-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .settings-row:last-child { margin-bottom: 0; }
-.settings-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-.settings-dot[data-color="black"] { background: #31333f; }
-.settings-dot[data-color="blue"] { background: #1a73e8; }
-.settings-dot[data-color="red"] { background: #d33; }
-.settings-row input[type="text"] {
-  flex: 1 1 auto; font-size: 13px; padding: 6px 8px; border-radius: 6px; border: 1px solid #e2e4e9;
-  font-family: inherit; color: #31333f;
-}
-.settings-row input[type="text"]:focus { outline: none; border-color: var(--tx-text); }
-.settings-fixed { font-size: 12.5px; color: #8a8f98; }
-/* 罫線ではなく余白だけで区切る（色の名前設定と、表示のオンオフ設定の間）。 */
-.settings-toggle {
-  display: flex; align-items: center; gap: 8px; margin-top: 14px;
-  font-size: 12.5px; color: #31333f; cursor: pointer;
-}
-.settings-toggle input { flex: none; }
 
 /* ── デザイン：ヒーロー内に常時表示するグリッド（当初のアプリイメージ通り、ドロップダウンでは
    ない。ボタンは名前のみ・4列×2行。2026-09、設定パネルから移設）── */
@@ -661,7 +603,7 @@ body.print-active.no-sidenote .print-img { width: 156.6mm; max-width: 156.6mm; }
    行に入力欄・セレクトが並ぶため、他のdropdown-panel（280px）より広くする。 */
 .dropdown-panel-wide { width: 420px; max-height: 74vh; overflow-y: auto; }
 .panel-heading { font-size: 12.5px; font-weight: 700; color: var(--tx-text); margin-bottom: 10px; }
-/* 罫線ではなく余白だけでセクションを分ける（.settings-toggleと同じ考え方）。 */
+/* 罫線ではなく余白だけでセクションを分ける。 */
 .panel-heading-2nd { margin-top: 18px; }
 .style-set-row, .num-set-row { flex-wrap: wrap; }
 .row-tag { min-width: 34px; font-weight: 700; color: var(--tx-text); }

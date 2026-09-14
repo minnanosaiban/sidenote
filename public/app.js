@@ -24,13 +24,9 @@ const loadInput = document.getElementById("loadInput");
 const saveStatusEl = document.getElementById("saveStatus");
 const resumeApplyBtn = document.getElementById("resumeApply");
 const resumeDiscardBtn = document.getElementById("resumeDiscard");
-const settingsBtn = document.getElementById("settingsBtn");
-const settingsPanel = document.getElementById("settingsPanel");
-const settingsClose = document.getElementById("settingsClose");
-const nameBlackInput = document.getElementById("nameBlack");
-const nameBlueInput = document.getElementById("nameBlue");
 // 「サイドノートに名前を表示する」の色ごとのチェックボックス（サイドノート欄の上部、2026-09に
-// 設定パネルから移設）。
+// 設定パネルから移設）。設定ボタン自体（黒／青の名前のカスタム変更）は同時に廃止した
+// （colorNames.black/blueは既定値のまま固定。.jsonに保存済みの名前は読み込み時のみそのまま反映する）。
 const showLabelInputs = {
   black: document.getElementById("showLabelBlack"),
   blue: document.getElementById("showLabelBlue"),
@@ -356,8 +352,6 @@ async function applyProjectData(data) {
     replyIdSeq = typeof data.replyIdSeq === "number" ? data.replyIdSeq : replyIdSeq;
     if (data.colorNames && data.colorNames.black) colorNames.black = data.colorNames.black;
     if (data.colorNames && data.colorNames.blue) colorNames.blue = data.colorNames.blue;
-    nameBlackInput.value = colorNames.black;
-    nameBlueInput.value = colorNames.blue;
     updateColorSwatchLabels();
     titleInput.value = data.title || "";
     if (data.theme) applyTheme(data.theme);
@@ -393,8 +387,6 @@ async function applyProjectData(data) {
   hrIdSeq = typeof data.hrIdSeq === "number" ? data.hrIdSeq : doc.querySelectorAll(".para-hr").length + 1;
   if (data.colorNames && data.colorNames.black) colorNames.black = data.colorNames.black;
   if (data.colorNames && data.colorNames.blue) colorNames.blue = data.colorNames.blue;
-  nameBlackInput.value = colorNames.black;
-  nameBlueInput.value = colorNames.blue;
   updateColorSwatchLabels();
   titleInput.value = data.title || "";
   if (data.theme) applyTheme(data.theme);
@@ -996,37 +988,8 @@ colorPickerEl.querySelectorAll(".color-swatch").forEach((btn) => {
   };
 });
 updateColorSwatchLabels();
-
-// ---- 「設定」（黒・青の名前）のドロップダウン ----
-const COLOR_NAMES_KEY = "sidenote-color-names-v1";
-(function loadColorNamesDefault() {
-  try {
-    const raw = localStorage.getItem(COLOR_NAMES_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-    if (parsed && parsed.black) colorNames.black = parsed.black;
-    if (parsed && parsed.blue) colorNames.blue = parsed.blue;
-  } catch (err) { /* noop */ }
-})();
-function saveColorNamesDefault() {
-  try { localStorage.setItem(COLOR_NAMES_KEY, JSON.stringify(colorNames)); } catch (err) { /* noop */ }
-}
-nameBlackInput.value = colorNames.black;
-nameBlueInput.value = colorNames.blue;
-nameBlackInput.oninput = () => {
-  colorNames.black = nameBlackInput.value.trim() || "自分";
-  updateColorSwatchLabels();
-  saveColorNamesDefault();
-  renumberAndLayout();
-  autoSaveDebounced();
-};
-nameBlueInput.oninput = () => {
-  colorNames.blue = nameBlueInput.value.trim() || "共有相手";
-  updateColorSwatchLabels();
-  saveColorNamesDefault();
-  renumberAndLayout();
-  autoSaveDebounced();
-};
+// 黒・青の名前（自分／共有相手）を変える「設定」ボタンは2026-09に廃止した（既定名のまま固定。
+// .jsonに保存済みの名前は開いた時だけそのまま反映する＝applyProjectData参照）。
 
 // 「サイドノートに名前を表示する」は色ごとの3つのチェックボックスにして、サイドノート欄の
 // 上部に常時表示する（2026-09、設定パネルの中に隠れていて気づきにくいという指摘を受けて変更。
@@ -1122,8 +1085,6 @@ function toggleDropdownPanel(panelEl, btnEl) {
   panelEl.style.top = `${window.scrollY + rect.bottom + 6}px`;
   panelEl.style.left = `${window.scrollX + rect.left}px`;
 }
-settingsBtn.onclick = () => toggleDropdownPanel(settingsPanel, settingsBtn);
-settingsClose.onclick = () => { settingsPanel.hidden = true; };
 // 「デザイン」グリッド内の「カスタマイズ」は他のスウォッチと違い、テーマを適用せず「項番設定」
 // パネルを開く（sidenote-pdf-docの書式機能をこの入り口にまとめる。カスタマイズの中身は
 // 見出し（H1〜H3）の見た目と項番の型ごとのインデント・ぶら下げ）。
@@ -1231,7 +1192,6 @@ function clearPendingHighlight() {
 }
 
 function openPopover(rect) {
-  settingsPanel.hidden = true;
   numberingPanel.hidden = true;
   popoverInput.value = "";
   popoverEl.hidden = false;

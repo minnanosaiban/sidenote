@@ -85,6 +85,10 @@ try {
           <button type="button" class="theme-swatch theme-swatch-customize" id="customizeThemeBtn">カスタマイズ</button>
         </div>
       </div>
+      <!-- 「開いているファイル：〇〇.md」「Markdownを取り込みました（81ブロック）」等の状態表示。
+           2026-09、ツールバー付近からデザイングリッドの下へ移設。 -->
+      <div id="openedFileNote" class="opened-file-note" hidden></div>
+      <div id="saveStatus"></div>
     </div>
 
     <div class="hero-right">
@@ -125,23 +129,12 @@ try {
           </div>
         </div>
       </div>
-
-      <!-- ほかのツール（残っているのはsidenote-pdf-webのみ。sidenote-pdf・sidenote-pdf-docは
-           このアプリへ統合され廃止済み）。矢印＝押せば飛べる印。 -->
-      <div class="related-row-label">ほかのツールもあります</div>
-      <div class="related-row">
-        <a class="related-card" href="https://sidenote-pdf-web.pages.dev/" target="_blank" rel="noopener">
-          <div class="related-card-name">ウェブ用Markdown版<svg class="related-card-arrow" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8.146 3.146a.5.5 0 0 1 .708 0l4.5 4.5a.5.5 0 0 1 0 .708l-4.5 4.5a.5.5 0 0 1-.708-.708L11.793 8 8.146 4.354a.5.5 0 0 1 0-.708z"/><path fill-rule="evenodd" d="M2 8a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 8z"/></svg></div>
-          <div class="related-card-desc">MkDocs・Docsify用のMarkdownを書き出す版</div>
-        </a>
-      </div>
     </div>
   </div>
 </header>
 
 <div class="toolbar-sticky">
 <div class="toolbar" id="toolbarMenu1">
-  <button id="settingsBtn" type="button" class="btn-outline">設定</button>
   <button id="resumeDiscard" type="button" class="btn-outline">新しい作業</button>
   <button id="resumeApply" type="button" class="btn-outline" disabled>続きから再開</button>
   <label id="openLabel" class="filebtn2 btn-outline" data-tip="Markdownファイル(.md)・PDFファイル、または保存した.jsonファイルを開く">
@@ -163,14 +156,12 @@ try {
     <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zM1.6 11.85H0v3.999h.791v-1.342h.803q.43 0 .732-.173.305-.175.463-.474a1.4 1.4 0 0 0 .161-.677q0-.375-.158-.677a1.2 1.2 0 0 0-.46-.477q-.3-.18-.732-.179m.545 1.333a.8.8 0 0 1-.085.38.57.57 0 0 1-.238.241.8.8 0 0 1-.375.082H.788V12.48h.66q.327 0 .512.181.185.183.185.522m1.217-1.333v3.999h1.46q.602 0 .998-.237a1.45 1.45 0 0 0 .595-.689q.196-.45.196-1.084 0-.63-.196-1.075a1.43 1.43 0 0 0-.589-.68q-.396-.234-1.005-.234zm.791.645h.563q.371 0 .609.152a.9.9 0 0 1 .354.454q.118.302.118.753a2.3 2.3 0 0 1-.068.592 1.1 1.1 0 0 1-.196.422.8.8 0 0 1-.334.252 1.3 1.3 0 0 1-.483.082h-.563zm3.743 1.763v1.591h-.79V11.85h2.548v.653H7.896v1.117h1.606v.638z"/></svg>
     .pdf
   </button>
-  <!-- 2行のメニュー（メニュー1＝このファイル操作、メニュー2＝書式ツールバー）は、それぞれ独立して
-       画面上部に固定できる（menu-sticky参照）。1行目だけ固定・2行目だけ固定、両方固定も両方非固定も
-       選べる。ボタン列に混ぜると900px幅に収まらず折り返すため、絶対配置で右上（.toolbar-stickyの
-       padding-top分の余白）に置く。#toolbarMenu1の子にすることで、メニュー1固定時に一緒に
-       画面上部へ追従する（固定中に押せなくなるのを防ぐ）。 -->
+  <!-- 2行のメニュー（上段＝このファイル操作、下段＝書式ツールバー）は、それぞれ独立して画面上部に
+       固定できる（menu-sticky参照）。上段だけ固定・下段だけ固定、両方固定も両方非固定も選べる。
+       設定ボタンを廃止して空いた幅にボタン列と同じ行で収まる（margin-left:autoで右寄せ）。 -->
   <div class="menu-pin-toggles">
-    <label class="menu-pin-toggle"><input type="checkbox" id="menu1StickyToggle">メニュー1固定</label>
-    <label class="menu-pin-toggle"><input type="checkbox" id="menu2StickyToggle">メニュー2固定</label>
+    <label class="menu-pin-toggle"><input type="checkbox" id="menu1StickyToggle">上段メニュー固定</label>
+    <label class="menu-pin-toggle"><input type="checkbox" id="menu2StickyToggle">下段メニュー固定</label>
   </div>
 </div>
 
@@ -225,36 +216,8 @@ try {
 </div>
 
 <div class="title-row">
-  <div class="title-label">タイトル（本文の見出し・.json保存名に使用）</div>
+  <div class="title-label">ファイル名</div>
   <input id="titleInput" type="text" placeholder="例：資料A、〇〇案件メモ　※「sidenote-資料A-20260819-2306.json」と保存されます">
-  <!-- .mdファイルを開いている間だけ、実際のファイル名（Ctrl+Sで上書きされる先）をここに表示する。
-       上のタイトルはMarkdown見出し(#)や.json保存名のもとになる別の値なので、実ファイル名とは別に示す。 -->
-  <div id="openedFileNote" class="opened-file-note" hidden></div>
-</div>
-<div id="saveStatus"></div>
-
-<div class="dropdown-panel" id="settingsPanel" hidden>
-  <div class="dropdown-panel-head">
-    <span class="dropdown-panel-title">設定</span>
-    <button type="button" class="dropdown-close" id="settingsClose" aria-label="閉じる">
-      <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>
-    </button>
-  </div>
-  <div class="settings-row">
-    <span class="settings-dot" data-color="black"></span>
-    <input id="nameBlack" type="text" maxlength="12" placeholder="自分">
-  </div>
-  <div class="settings-row">
-    <span class="settings-dot" data-color="blue"></span>
-    <input id="nameBlue" type="text" maxlength="12" placeholder="共有相手">
-  </div>
-  <div class="settings-row">
-    <span class="settings-dot" data-color="red"></span>
-    <span class="settings-fixed">重要（固定・名前は付けられません）</span>
-  </div>
-  <!-- 「サイドノートに名前を表示する」（色ごと）はサイドノート欄の上部へ、「メニューを画面上部に
-       固定する」はツールバー内の「メニュー1固定」「メニュー2固定」へ、それぞれ常時見える場所へ
-       移設した（2026-09、設定の中に隠れていて気づきにくいという指摘を受けて変更）。 -->
 </div>
 
 <!-- 「項番設定」：見出し（H1〜H3）の見た目と、項番の型（第１／１／⑴／ア）ごとのインデント・ぶら下げを
