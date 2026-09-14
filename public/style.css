@@ -128,17 +128,27 @@ body {
    2つが900px内に収まる幅。設定・デザインは2026-09にこの行から移設・廃止済み）。 */
 .toolbar .btn-outline, .toolbar .btn-primary, .toolbar .filebtn2 { width: 104px; }
 
-/* 文章が長くなるとボタンに手が届かなくなるため、メニュー1（ファイル操作）・メニュー2（書式）は
-   それぞれ独立に画面上部へ固定できる（ツールバー右の「メニュー1固定」「メニュー2固定」チェック
-   ボックス、app.js参照）。.menu-stickyが付いた行だけposition:stickyにする。メニュー2が固定の時は
-   メニュー1の高さぶんだけ下にずらして重ならないようにする（メニュー1が非固定の場合はその分の
-   余白が浮くが、両方固定/両方非固定が主な使い方なので許容する）。 */
+/* 文章が長くなるとボタンに手が届かなくなるため、上段（ファイル操作）・下段（書式）は
+   それぞれ独立に画面上部へ固定できる（ツールバー右の「上段メニュー固定」「下段メニュー固定」
+   チェックボックス、app.js参照）。
+   position:stickyは「自分の親要素」の高さの範囲でしか固定され続けない。上段・下段の2行を
+   1つの短い.toolbar-stickyにまとめてそこへposition:stickyを付けると、そのすぐ下（親の外）まで
+   スクロールした瞬間に固定が解けてしまう（2026-09に発生させた不具合）。そのため上段・下段を
+   別々の.toolbar-sticky（ともにbody直下＝ページ全体ぶんの高さがある親）に分け、.menu-stickyが
+   付いた側だけposition:stickyにする。下段が固定の時は上段の高さぶんだけ下にずらして重ならない
+   ようにする（上段が非固定の場合はその分の余白が浮くが、両方固定/両方非固定が主な使い方なので
+   許容する）。 */
 .toolbar-sticky {
   max-width: 900px; margin: 0 auto 16px; padding-top: 48px;
 }
+/* 下段側の.toolbar-stickyは上段の直後に隙間なく続けたいので、上段用のpadding-top(48px)を
+   打ち消す（本来はヒーロー直後の1回だけでよい余白のため）。 */
+.toolbar-sticky--menu2 { padding-top: 0; margin-top: -16px; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; align-items: center; background: #f4f5f7; }
-#toolbarMenu1.menu-sticky { position: sticky; top: 8px; z-index: 20; }
-#formatToolbar.menu-sticky { position: sticky; top: 56px; z-index: 19; }
+#toolbarMenu1Wrap.menu-sticky { position: sticky; top: 8px; z-index: 20; background: #f4f5f7; }
+/* 96px = 上段の固定オフセット8px + 実際の高さ88px（padding-top:48pxを含む）。この値がズレると
+   下段が上段の裏に隠れて見えなくなる（2026-09に実際に発生した不具合）。 */
+#toolbarMenu2Wrap.menu-sticky { position: sticky; top: 96px; z-index: 19; background: #f4f5f7; }
 /* ボタン列の右端に置く（設定ボタンを廃止した分の余白に収まる）。margin-left:autoで押し出すため、
    折り返した場合はそのラインの右端に来る。 */
 .menu-pin-toggles { display: flex; gap: 8px; margin-left: auto; }
@@ -215,7 +225,9 @@ body {
 }
 
 
-.doc-wrap { display: flex; gap: 28px; max-width: 900px; margin: 0 auto; }
+/* .title-row（ツールバー→ファイル名の間、24px）と同じ余白を、ファイル名→本文の間にも作る
+   （2026-09、本文側だけ余白が無いという指摘を受けて追加）。 */
+.doc-wrap { display: flex; gap: 28px; max-width: 900px; margin: 24px auto 0; }
 .doc-left { flex: 1 1 auto; min-width: 0; position: relative; }   /* 段落ホバー時のアイコン(.para-hover)の位置基準 */
 .doc-label { font-size: 12.5px; color: #8a8f98; margin: 0 0 6px; }
 .doc-right-col { width: 260px; flex: none; }   /* 区切りは罫線ではなくgap（余白）だけに任せる */

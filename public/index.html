@@ -31,8 +31,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Old+Mincho:wght@400;600&family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <!-- ?v=NUM はキャッシュ対策。style.css/themes.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
-<link rel="stylesheet" href="style.css?v=1">
-<link rel="stylesheet" href="themes.css?v=1">
+<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="themes.css?v=2">
 <!-- デザイン（テーマ）の初期反映を<body>のCSS読み込み前に済ませ、既定テーマへ一瞬だけ戻る
      ちらつき（FOUC）を防ぐ。app.js側の設定・保存内容と完全に同じキー・同じ既定値を使う。 -->
 <script>
@@ -133,7 +133,11 @@ try {
   </div>
 </header>
 
-<div class="toolbar-sticky">
+<!-- 上段・下段それぞれを独立した.toolbar-stickyでbody直下に置く（position:stickyは
+     自分の「親」の高さの範囲でしか固定されないため、2行をまとめて短い1つの親に入れると
+     ページの残り部分をスクロールした瞬間に固定が解けてしまう。親をbody直下の別々の要素にして、
+     ページ全体ぶんの高さを確保する）。 -->
+<div class="toolbar-sticky" id="toolbarMenu1Wrap">
 <div class="toolbar" id="toolbarMenu1">
   <button id="resumeDiscard" type="button" class="btn-outline">新しい作業</button>
   <button id="resumeApply" type="button" class="btn-outline" disabled>続きから再開</button>
@@ -164,12 +168,14 @@ try {
     <label class="menu-pin-toggle"><input type="checkbox" id="menu2StickyToggle">下段メニュー固定</label>
   </div>
 </div>
+</div>
 
 <!-- 本文（左カラム）の書式ツールバー。配置・インデント・ぶら下げ・スタイルはカーソルのある段落
      （複数段落にまたがる選択時はその全段落）へ、太字・下線・傍点は選択範囲の文字へ適用する。
      PDFモードでは隠れる（setMode参照）。sidenote-pdf-docから移植。
      ボタンは.toolbar-format側のmousedownでpreventDefaultし、クリックしても#docの
      フォーカス・選択範囲を失わないようにする（失うとどの段落・範囲に適用すべきか分からなくなるため）。 -->
+<div class="toolbar-sticky toolbar-sticky--menu2" id="toolbarMenu2Wrap">
 <div class="toolbar toolbar-format" id="formatToolbar">
   <span class="fmt-unit">
     <span class="fmt-group-label">配置</span>
@@ -369,6 +375,6 @@ try {
 <footer class="app-footer">画面表示は本文15px・1行37字／PDF書き出しはサイドバーがあれば本文10.5pt・1行31字、無ければ本文12pt・1行37字が目安です（全角1文字≒1em換算）。</footer>
 
 <script src="md-parser.js?v=1"></script>
-<script src="app.js?v=1"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>

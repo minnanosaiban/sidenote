@@ -33,9 +33,13 @@ const showLabelInputs = {
   red: document.getElementById("showLabelRed"),
 };
 // メニュー1（ファイル操作の.toolbar）・メニュー2（書式ツールバー.toolbar-format）を、それぞれ独立に
-// 画面上部へ固定できる（ツールバー右の「メニュー1固定」「メニュー2固定」。2026-09、設定パネルの
-// 「メニューを画面上部に固定する」を1つに統合していたのを分割）。
-const toolbarMenu1El = document.getElementById("toolbarMenu1");
+// 画面上部へ固定できる（ツールバー右の「上段メニュー固定」「下段メニュー固定」。2026-09、設定
+// パネルの「メニューを画面上部に固定する」を1つに統合していたのを分割）。position:stickyを付ける
+// のは行そのもの（#toolbarMenu1/#formatToolbar）ではなく、それぞれを包む.toolbar-sticky
+// ラッパー（#toolbarMenu1Wrap/#toolbarMenu2Wrap）。sticky要素は「自分の親」の高さの範囲でしか
+// 固定され続けないため、ラッパーをbody直下（＝ページ全体ぶんの高さがある親）にする必要がある。
+const toolbarMenu1WrapEl = document.getElementById("toolbarMenu1Wrap");
+const toolbarMenu2WrapEl = document.getElementById("toolbarMenu2Wrap");
 const menu1StickyToggle = document.getElementById("menu1StickyToggle");
 const menu2StickyToggle = document.getElementById("menu2StickyToggle");
 // 「デザイン」はドロップダウンではなく、ヒーロー内に常時表示するグリッド（2026-09、当初の
@@ -1014,9 +1018,10 @@ Object.keys(showLabelInputs).forEach((c) => {
   };
 });
 
-// メニュー1（ファイル操作）・メニュー2（書式ツールバー）は、それぞれ独立に画面上部へ固定できる
-// （ツールバー右の「メニュー1固定」「メニュー2固定」チェックボックス。この端末の個人設定として
-// localStorageへ。既定はどちらもfalse＝固定しない）。
+// 上段（ファイル操作）・下段（書式ツールバー）は、それぞれ独立に画面上部へ固定できる
+// （ツールバー右の「上段メニュー固定」「下段メニュー固定」チェックボックス。この端末の個人設定
+// としてlocalStorageへ。既定はどちらもfalse＝固定しない）。.menu-stickyを付けるのは行を包む
+// .toolbar-stickyラッパー側（toolbarMenu1WrapEl/toolbarMenu2WrapEl）。
 const MENU_STICKY_KEYS = { menu1: "sidenote-menu1-sticky-v1", menu2: "sidenote-menu2-sticky-v1" };
 const menuStickyState = { menu1: false, menu2: false };
 function applyMenuSticky(key, el, toggleEl) {
@@ -1029,16 +1034,16 @@ function applyMenuSticky(key, el, toggleEl) {
     if (raw !== null) menuStickyState[key] = raw === "1";
   } catch (err) { /* noop */ }
 });
-applyMenuSticky("menu1", toolbarMenu1El, menu1StickyToggle);
-applyMenuSticky("menu2", formatToolbarEl, menu2StickyToggle);
+applyMenuSticky("menu1", toolbarMenu1WrapEl, menu1StickyToggle);
+applyMenuSticky("menu2", toolbarMenu2WrapEl, menu2StickyToggle);
 menu1StickyToggle.onchange = () => {
   menuStickyState.menu1 = menu1StickyToggle.checked;
-  applyMenuSticky("menu1", toolbarMenu1El, menu1StickyToggle);
+  applyMenuSticky("menu1", toolbarMenu1WrapEl, menu1StickyToggle);
   try { localStorage.setItem(MENU_STICKY_KEYS.menu1, menuStickyState.menu1 ? "1" : "0"); } catch (err) { /* noop */ }
 };
 menu2StickyToggle.onchange = () => {
   menuStickyState.menu2 = menu2StickyToggle.checked;
-  applyMenuSticky("menu2", formatToolbarEl, menu2StickyToggle);
+  applyMenuSticky("menu2", toolbarMenu2WrapEl, menu2StickyToggle);
   try { localStorage.setItem(MENU_STICKY_KEYS.menu2, menuStickyState.menu2 ? "1" : "0"); } catch (err) { /* noop */ }
 };
 

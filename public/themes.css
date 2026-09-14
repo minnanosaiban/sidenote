@@ -67,6 +67,16 @@ html[data-theme="minimal"] body.print-active .print-h2,
 html[data-theme="minimal"] body.print-active .print-h3 {
   font-size: inherit; font-weight: 700;
 }
+/* 見出しだけでなく、本文中の太字（Ctrl+B／**太字**）もメイリオにする（2026-09、指定を受けて追加）。
+   ChromeのexecCommand("bold")は<strong>ではなく<b>を生成するため両方に当てる。画面・印刷とも。 */
+html[data-theme="minimal"] #doc strong,
+html[data-theme="minimal"] #doc b {
+  font-family: 'Meiryo', 'Noto Sans JP', sans-serif;
+}
+html[data-theme="minimal"] body.print-active #printDoc strong,
+html[data-theme="minimal"] body.print-active #printDoc b {
+  font-family: 'Meiryo', 'Noto Sans JP', sans-serif;
+}
 
 /* ③ フラット：court-calendarのデザインシステムに近い、カード区切りのSaaS系。 */
 html[data-theme="flat"] {
