@@ -21,7 +21,7 @@ TITLE = "サイドノート作成ツール"
 DESC_LINES = ['テキスト・Markdown・PDFに注釈を。', '書式や項番も整えられます。']
 SQUARE_LINES = ['サイドノート', '作成ツール']
 MOCK = "md"            # plain / indent / md / web
-URL = "sidenote.pages.dev"
+URL = "sidenote-tool.pages.dev"
 
 # ---- 配色（サイトのstyle.cssのトークンと同じ値） ----
 BG = "#fafafa"

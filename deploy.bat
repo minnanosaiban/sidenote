@@ -4,16 +4,19 @@ setlocal
 rem ============================================================
 rem  sidenote deploy (Cloudflare Pages)
 rem  Double-click after changes to update the live site.
+rem  Cloudflare Pagesのプロジェクト名はsidenote-tool（sidenote.pages.devは
+rem  無関係な第三者が既に使用済みのため、2026-09にsidenote-toolへ変更）。
+rem  GitHubリポジトリ名はsidenoteのまま（プロジェクト名と一致させる必要はない）。
 rem
 rem  First-time setup (run once in this folder):
 rem    npm install
 rem    npx wrangler login
-rem    npx wrangler pages project create sidenote
+rem    npx wrangler pages project create sidenote-tool
 rem    Create GitHub repo: https://github.com/new
 rem      -> minnanosaiban/sidenote (public)
 rem ============================================================
 
-echo === Deploy sidenote to Cloudflare Pages ===
+echo === Deploy sidenote-tool to Cloudflare Pages ===
 cd /d "%~dp0"
 echo Current: %CD%
 

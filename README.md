@@ -1,6 +1,6 @@
 # sidenote（サイドノート作成ツール）
 
-🔗 https://sidenote.pages.dev/
+🔗 https://sidenote-tool.pages.dev/
 
 ## このツールについて
 
