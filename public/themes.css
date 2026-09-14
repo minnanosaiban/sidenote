@@ -1,0 +1,177 @@
+/* ==================================================================
+   デザイン（テーマ）定義。5案とも本文（#doc・サイドノート・印刷）だけに効く
+   CSS変数のセットで、アプリのツールバー等（style.css側）には影響しない。
+   html[data-theme="..."] はapp.js（デザインパネル）とindex.html冒頭のインライン
+   スクリプト（初期表示のちらつき防止）の両方から設定される。
+   2026-09-12、ダークUI以外の4テーマ（エディトリアル／ミニマル／フラット／和モダン）は
+   --paperを共通の薄いグレー(#f4f5f7＝アプリ全体の背景色と同じ)に統一。テーマごとの違いは
+   ink・accent・surface・フォントなど紙色以外の要素で出す。ダークUIだけ独自の紙色のまま。
+   ================================================================== */
+
+/* 既定値（= "minimal"。JS未実行時や不正なテーマ名のフォールバックにもなる）。
+   2026-09-12、目の疲れ対策で紙色を純白(#ffffff)から薄いクールグレーへ変更（本文インクも純黒から
+   少し和らげた）。アプリ全体の背景色（style.css側の--tx-text/body/.hero）と揃えた色調。 */
+:root {
+  --paper: #f4f5f7;
+  --ink: #24262b;
+  --muted: #6b6b6b;
+  --accent: #8a1f1f;
+  --rule: #cfcfcf;
+  --surface: transparent;
+  --radius: 0px;
+  --font-head: 'Zen Old Mincho', 'Noto Serif JP', serif;
+  --font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ① エディトリアル：雑誌風・明朝の大見出し・ゆったりした余白。 */
+html[data-theme="editorial"] {
+  --paper: #f4f5f7;
+  --ink: #211f1c;
+  --muted: #7a766e;
+  --accent: #3f5142;
+  --rule: #d9d7d0;
+  --surface: #ffffff;
+  --radius: 0px;
+  --font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
+  --font-body: 'Noto Serif JP', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ② 文書（ミニマル）：sidenote-pdf-docの「公文書仕様」に近い、禁欲的な組版。既定テーマ。
+   2026-09-12、目の疲れ対策で紙色を純白から薄いクールグレーへ変更（:root既定値と同じ色調）。 */
+html[data-theme="minimal"] {
+  --paper: #f4f5f7;
+  --ink: #24262b;
+  --muted: #6b6b6b;
+  --accent: #8a1f1f;
+  --rule: #cfcfcf;
+  --surface: transparent;
+  --radius: 0px;
+  --font-head: 'Zen Old Mincho', 'Noto Serif JP', serif;
+  --font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ③ フラット：court-calendarのデザインシステムに近い、カード区切りのSaaS系。 */
+html[data-theme="flat"] {
+  --paper: #f4f5f7;
+  --ink: #1f2530;
+  --muted: #6b7484;
+  --accent: #3d5a99;
+  --rule: #dfe3ea;
+  --surface: #ffffff;
+  --radius: 10px;
+  --font-head: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
+  --font-body: 'Noto Sans JP', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ④ ダークUI：分析ツール風・集中読解向け。 */
+html[data-theme="dark"] {
+  --paper: #14171c;
+  --ink: #e6e9ef;
+  --muted: #8b93a3;
+  --accent: #e0a63f;
+  --rule: #2a2f38;
+  --surface: #1b1f27;
+  --radius: 8px;
+  --font-head: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
+  --font-body: 'Noto Sans JP', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ⑤ 和モダン：墨と紺、装飾ゼロの静けさ。 */
+html[data-theme="wamodan"] {
+  --paper: #f4f5f7;
+  --ink: #2b2a28;
+  --muted: #83786a;
+  --accent: #223a5e;
+  --rule: #ded5c3;
+  --surface: transparent;
+  --radius: 0px;
+  --font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
+  --font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ⑥ 官報：太いゴシック・角ゼロ・濃いめの罫線で、法令・告示のような無彩色に近い組版。
+   2026-09-12追加。既存フォント（追加読み込みなし）の中で唯一「見出しも本文もゴシック」
+   の組み合わせで、フラット（同じくゴシック）とは角丸ゼロ・より暗いink・朱色のaccentで区別する。 */
+html[data-theme="gazette"] {
+  --paper: #f4f5f7;
+  --ink: #1a1a1a;
+  --muted: #5c5c5c;
+  --accent: #a13d2b;
+  --rule: #b7b7b7;
+  --surface: #ffffff;
+  --radius: 0px;
+  --font-head: 'Noto Sans JP', sans-serif;
+  --font-body: 'Noto Sans JP', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ⑦ ノート：丸み・暖色のインク・クリームがかった面で、個人メモ寄りのやわらかさを出す。
+   2026-09-12追加。既存5案は総じて硬派（雑誌／公文書／SaaS／分析ツール／墨）なので、
+   唯一の「柔らかい」方向として追加。 */
+html[data-theme="notebook"] {
+  --paper: #f4f5f7;
+  --ink: #3d3a34;
+  --muted: #8f887a;
+  --accent: #b8654f;
+  --rule: #e3ddd0;
+  --surface: #fdfaf3;
+  --radius: 14px;
+  --font-head: 'Noto Sans JP', sans-serif;
+  --font-body: 'Noto Sans JP', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ------------------------------------------------------------------
+   印刷（PDF化）用のフォント・差し色。印刷は常に白地・黒文字が基本方針なので
+   --paper/--ink/--surfaceは印刷側では使わず、フォントと差し色（--p-*）だけ
+   テーマに応じて変える（style.css側のbody.print-active関連ルールが参照する）。
+   ダークテーマの --accent（#e0a63f）は白地の上では明るすぎて読みにくいため、
+   印刷用にはより濃い色へ調整している。
+   ------------------------------------------------------------------ */
+body.print-active {
+  --p-font-head: "Source Sans Pro", system-ui, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  --p-font-body: "Source Sans Pro", system-ui, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  --p-accent: #ff4b4b;
+}
+html[data-theme="editorial"] body.print-active {
+  --p-font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
+  --p-font-body: 'Noto Serif JP', serif;
+  --p-accent: #3f5142;
+}
+html[data-theme="minimal"] body.print-active {
+  --p-font-head: 'Zen Old Mincho', 'Noto Serif JP', serif;
+  --p-font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
+  --p-accent: #8a1f1f;
+}
+html[data-theme="flat"] body.print-active {
+  --p-font-head: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
+  --p-font-body: 'Noto Sans JP', sans-serif;
+  --p-accent: #3d5a99;
+}
+html[data-theme="dark"] body.print-active {
+  --p-font-head: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
+  --p-font-body: 'Noto Sans JP', sans-serif;
+  --p-accent: #b5791a;
+}
+html[data-theme="wamodan"] body.print-active {
+  --p-font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
+  --p-font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
+  --p-accent: #223a5e;
+}
+html[data-theme="gazette"] body.print-active {
+  --p-font-head: 'Noto Sans JP', sans-serif;
+  --p-font-body: 'Noto Sans JP', sans-serif;
+  --p-accent: #a13d2b;
+}
+/* ノートのaccent（#b8654f）は白地では淡すぎるため、印刷時だけダーク寄りに調整する（ダークUIと同じ考え方）。 */
+html[data-theme="notebook"] body.print-active {
+  --p-font-head: 'Noto Sans JP', sans-serif;
+  --p-font-body: 'Noto Sans JP', sans-serif;
+  --p-accent: #8a4636;
+}

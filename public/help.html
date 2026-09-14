@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>使い方 - サイドノート作成ツール</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<!-- ?v=NUM はキャッシュ対策。style.css/help.cssを直す度に、直したファイルの番号だけ+1する。 -->
+<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="help.css?v=1">
+</head>
+<body>
+
+<div class="help-page">
+  <a class="btn-outline help-back" href="index.html">← サイドノート作成に戻る</a>
+  <h1>使い方</h1>
+  <p class="help-lead">テキスト・Markdown・PDFなどの資料に、右側のサイドノートで注釈を付けていく手順です。基本の操作のあとに、書式・項番設定・PDFモード・Markdownの取り込みといった追加機能をまとめています。</p>
+
+  <ul class="help-toc">
+    <li><a href="#common">基本の使い方</a></li>
+    <li><a href="#format">書式・項番設定・PDFモード・Markdown</a></li>
+    <li><a href="#web">ウェブ用Markdown作成版（別アプリ）だけの操作</a></li>
+  </ul>
+
+  <div class="help-section-title" id="common">基本の使い方</div>
+  <ol class="help-steps">
+    <li>
+      テキスト・画像・注釈したい範囲を選択すると入力欄が出ます。コメントを書いて色（自分／共有相手／重要）を選ぶと、右側にサイドノートが付きます。同じ範囲に「＋ 返信」で追記もできます。
+      <img class="help-gif" src="help-annotate.gif" alt="テキストを選択してサイドノートを追加する例" loading="lazy">
+    </li>
+    <li>
+      段落にカーソルを乗せると、右側に「＋画像」「×削除」のアイコンが出ます。「＋画像」はその段落の直後に画像を挿入、「×削除」はその段落（画像の場合はその1枚）だけを消します。
+      <img class="help-gif" src="help-block.gif" alt="段落ホバーで画像を挿入・削除する例" loading="lazy">
+    </li>
+    <li>
+      「開く」でPDFファイルを選ぶと、そのPDFにサイドノートを付けるモードになります。文字が選択できるPDFは範囲選択、スキャンなど文字が選択できないPDFはクリックまたはドラッグでノートの位置を指定します。
+      <img class="help-gif" src="help-pdf-drag.gif" alt="スキャンPDFへドラッグでノート位置を指定する例" loading="lazy">
+    </li>
+  </ol>
+
+  <div class="help-section-title">その他の操作</div>
+  <ul class="help-list">
+    <li>保存はタイトル＋日時付きの.jsonファイルに書き出します（画像・PDF本体も内包されます）。</li>
+    <li>「続きから再開」はブラウザ内の自動保存を読み込みます（.json保存とは別物で、この端末・このブラウザでのみ有効です）。</li>
+    <li>「新しい作業」は本文・ノート・画像・タイトルを全て消して、別の案件を新規に始めます（PDFモードで押した場合も本文モードへ戻ります）。</li>
+    <li>「PDF化」は印刷ダイアログを開きます。保存先（プリンター）で「PDFに保存」を選んでください。</li>
+    <li>Ctrl＋Sでも「保存」と同じ動作（.json書き出し。.mdを開いた直後は.mdへの上書き）になります。</li>
+  </ul>
+
+  <div class="help-section-title" id="format">書式・項番設定・PDFモード・Markdown</div>
+  <ul class="help-list">
+    <li>本文用の書式ツールバー：配置・インデント・ぶら下げ（1〜3字）・スタイル（本文／H1〜H3の見出し）はカーソルのある段落（複数段落を選択した場合はその全段落）に、太字・下線・傍点は選択した文字に適用されます。傍点は範囲選択が必須で、同じ範囲をもう一度選んで押すと解除できます。Enterで段落を分けた直後は、直前の段落と同じ配置・インデント・ぶら下げ・スタイルを引き継ぎます。PDFモードでは使えません。</li>
+    <li>「デザイン」の「カスタマイズ」：見出し（H1〜H3）の文字サイズ・太字と、項番の型（第１／１／⑴／ア）ごとのインデント・ぶら下げをまとめて設定できます。「項番を一括適用」を押すと、文書内の該当する段落にまとめて書き込まれます（手動で書式を変えた段落は保護されて対象外になります）。設定は文書の.jsonに保存されます。</li>
+    <li>「デザイン」の他の7種類（雑誌風／公文書風／フラット／ダークUI／和モダン／官報／ノート）は本文の見た目だけを切り替えます。切り替えても本文・注釈の中身は変わりません。</li>
+    <li>「開く」で.mdファイルを選ぶか、本文エリアへ直接ドラッグ＆ドロップするとMarkdownとして取り込みます（見出し・段落・太字/斜体・リンク・リスト・引用・表・区切り線・コードブロック・画像に対応）。</li>
+    <li><b>Ctrl+Vでの貼り付けもMarkdownとして取り込みます。</b>本文が空のときは文書全体の取り込み（先頭の見出し「#」はタイトル欄へ、本文は丸ごと置き換え）、すでに何か書かれているときはカーソルのある段落の直後へ挿入します（段落の途中に割り込む挙動は持ちません）。「開く」やドラッグ＆ドロップでの取り込みは、いつでも本文を丸ごと置き換えます（必要なら先に「保存」しておいてください）。</li>
+    <li>見出し・リスト項目の途中でEnterしても、常にプレーンな段落が続きます（構造の変更はできない仕様です）。</li>
+    <li>「MDで書き出す」は注釈を含まないプレーンなMarkdownとして書き出します。.mdを少し直しただけの時に使ってください（PDFモードでは使えません）。</li>
+    <li>Markdownの取り込み（貼り付け・「開く」・ドラッグ＆ドロップ）と画像の挿入は、Ctrl+Zでは戻せません。書き始める前に「保存」しておくか、取り込み直してください。</li>
+  </ul>
+
+  <div class="help-section-title" id="web">ウェブ用Markdown作成版（別アプリ）だけの操作</div>
+  <p class="help-note">本文とサイドノートを、MkDocs・Docsify等の静的サイト用のMarkdownとして書き出す、独立した別のアプリです（<a href="https://sidenote-pdf-web.pages.dev/">ウェブ用Markdown作成版を開く</a>）。書式は太字・下線・見出し（H1〜H3）だけを持ちます（配置・インデント・ぶら下げ・傍点・PDFモードはこのアプリの担当です）。</p>
+  <ul class="help-list">
+    <li>「書き出し」を押すとパネルが開きます。形式は「ウェブ用（MkDocs / Docsify など）」と「hotline用（<code>:N X:</code> マーカー）」の2つから選べます。</li>
+    <li>「フォルダへ書き出す」でサイトのフォルダ（MkDocsなら<code>docs/</code>以下）を選ぶと、「タイトル.md」として直接書き込みます。初回だけフォルダ選択が出て、以後は同じ場所へ上書きするので、書き直したら押すだけで反映されます（「保存先を選び直す」で別のフォルダに切り替えられます）。</li>
+    <li>「サイドノート用のCSS（sidenote.css）も一緒に書き出す」をオンにすると、注釈を右余白へ並べるCSSが同じフォルダに書き出されます。ページ側で1回読み込んでください（MkDocsは<code>extra_css</code>、Docsifyは<code>&lt;link rel="stylesheet"&gt;</code>）。</li>
+    <li>書き出しの中身：見出し（H1〜H3）はMarkdownの<code>##</code>〜<code>####</code>、段落は素のMarkdownの段落、サイドノートは段落の直後の<code>&lt;aside class="sn-note"&gt;</code>になります。画像は書き出しに含まれません。</li>
+    <li>File System Access API非対応のブラウザ（Firefox等）では、フォルダへの直接書き込みの代わりにダウンロードになります。「本文をコピー」「CSSをコピー」でクリップボードへ取ることもできます。</li>
+  </ul>
+
+  <a class="btn-outline help-back" href="index.html" style="margin-bottom:0">← サイドノート作成に戻る</a>
+</div>
+
+</body>
+</html>

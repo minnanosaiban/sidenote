@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>サイドノート作成ツール</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sidenote.pages.dev/">
+<meta property="og:title" content="サイドノート作成ツール">
+<meta property="og:description" content="テキスト・Markdown・PDFに右側のサイドノートで注釈を付け、書式や項番も整えられるツール">
+<!-- og:imageは正方形を1枚目に置く。多くのクローラー(Teams等)は複数og:imageのうち
+     1枚目を機械的に使い、小さいサムネイル枠では中央を正方形にトリミングする。1枚目が
+     横長(1200x630)だと左右の端が切れてタイトル文字が欠ける実害を確認したため、
+     先に正方形(テキストが中央2行で安全)を置き、横長は2枚目に回す。
+     Twitterはtwitter:image(別タグ)を見るため、この並びの影響を受けず横長のまま表示される。 -->
+<meta property="og:image" content="https://sidenote.pages.dev/og-image-square.png">
+<meta property="og:image:width" content="630">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image" content="https://sidenote.pages.dev/og-image-large.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="サイドノート作成ツール">
+<meta name="twitter:description" content="テキスト・Markdown・PDFに右側のサイドノートで注釈を付け、書式や項番も整えられるツール">
+<meta name="twitter:image" content="https://sidenote.pages.dev/og-image-large.png">
+<!-- 7種類のデザイン（テーマ）の見出し・本文フォントに使うWebフォント。CDN読み込みはこれのみ許可
+     （THIRD_PARTY_NOTICES.md参照）。印刷（PDF化）にもそのまま使うため、ここで先読みしておく。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Old+Mincho:wght@400;600&family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<!-- ?v=NUM はキャッシュ対策。style.css/themes.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
+<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="themes.css?v=1">
+<!-- デザイン（テーマ）の初期反映を<body>のCSS読み込み前に済ませ、既定テーマへ一瞬だけ戻る
+     ちらつき（FOUC）を防ぐ。app.js側の設定・保存内容と完全に同じキー・同じ既定値を使う。 -->
+<script>
+try {
+  var t = localStorage.getItem("sidenote-theme-v1");
+  if (t) document.documentElement.dataset.theme = t;
+} catch (e) { /* noop */ }
+</script>
+</head>
+<body>
+
+<!-- ============================================================
+     トップのヒーロー。左＝見出し＋説明文＋「使い方を読む」（使い方はこのアプリ自身のhelp.htmlへ）。
+     右＝このアプリのイメージ図（見出し・箇条書き・コードブロックでMarkdownらしさを出す）と、
+     ほかのツール（sidenote-pdf-web）。
+     sidenote-pdf・sidenote-pdf-docは2026-09にこのアプリへ統合され廃止済み。
+     ============================================================ -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-left">
+      <h1 class="hero-title">サイドノート作成ツール</h1>
+      <p class="hero-desc">テキスト・Markdown・PDFに注釈を。<br>書式や項番も整えられます。</p>
+      <a class="btn-outline hero-cta" href="help.html">使い方を読む</a>
+      <div class="hero-shortcuts">
+        <div class="hero-shortcuts-title">ショートカット対応</div>
+        <ul>
+          <li>Ctrl+S 保存</li>
+          <li>Esc キャンセル</li>
+          <li>Enter 改行</li>
+          <li>Ctrl+B 太字</li>
+          <li>Ctrl+U 下線</li>
+          <li>Ctrl+C コピー</li>
+          <li>Ctrl+V ペースト</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <div class="browser-mock" aria-hidden="true">
+        <div class="browser-mock-bar">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+          <span class="browser-mock-url">sidenote.pages.dev</span>
+        </div>
+        <div class="browser-mock-body">
+          <div class="mock-paper">
+            <div class="mock-doc">
+              <div class="mock-h" style="width:52%"></div>
+              <div class="mock-line" style="width:90%"></div>
+              <div class="mock-line-noted">
+                <span class="mock-line-inline" style="width:62%"></span>
+                <span class="mock-note-num">1</span>
+              </div>
+              <div class="mock-bullet"><span class="mock-dot"></span><span class="mock-line-inline" style="width:58%"></span></div>
+              <div class="mock-bullet"><span class="mock-dot"></span><span class="mock-line-inline" style="width:48%"></span></div>
+              <div class="mock-code"></div>
+              <div class="mock-line-noted">
+                <span class="mock-line-inline" style="width:44%"></span>
+                <span class="mock-note-num">2</span>
+              </div>
+            </div>
+            <div class="mock-side">
+              <div class="mock-note">
+                <span class="mock-note-num">1</span>
+                <span class="mock-note-text"></span>
+              </div>
+              <div class="mock-note mock-note-important">
+                <span class="mock-note-num">2</span>
+                <span class="mock-note-text"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ほかのツール（残っているのはsidenote-pdf-webのみ。sidenote-pdf・sidenote-pdf-docは
+           このアプリへ統合され廃止済み）。矢印＝押せば飛べる印。 -->
+      <div class="related-row-label">ほかのツールもあります</div>
+      <div class="related-row">
+        <a class="related-card" href="https://sidenote-pdf-web.pages.dev/" target="_blank" rel="noopener">
+          <div class="related-card-name">ウェブ用Markdown版<svg class="related-card-arrow" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8.146 3.146a.5.5 0 0 1 .708 0l4.5 4.5a.5.5 0 0 1 0 .708l-4.5 4.5a.5.5 0 0 1-.708-.708L11.793 8 8.146 4.354a.5.5 0 0 1 0-.708z"/><path fill-rule="evenodd" d="M2 8a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1h-10A.5.5 0 0 1 2 8z"/></svg></div>
+          <div class="related-card-desc">MkDocs・Docsify用のMarkdownを書き出す版</div>
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar-sticky">
+<div class="toolbar">
+  <button id="settingsBtn" type="button" class="btn-outline">設定</button>
+  <button id="themeBtn" type="button" class="btn-outline">デザイン</button>
+  <button id="resumeDiscard" type="button" class="btn-outline">新しい作業</button>
+  <button id="resumeApply" type="button" class="btn-outline" disabled>続きから再開</button>
+  <label id="openLabel" class="filebtn2 btn-outline" data-tip="Markdownファイル(.md)・PDFファイル、または保存した.jsonファイルを開く">
+    <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v.64c.57.265.94.876.856 1.546l-.64 5.124A2.5 2.5 0 0 1 12.733 15H3.266a2.5 2.5 0 0 1-2.481-2.19l-.64-5.124A1.5 1.5 0 0 1 1 6.14zM2 6h12v-.5a.5.5 0 0 0-.5-.5H9c-.964 0-1.71-.629-2.174-1.154C6.374 3.334 5.82 3 5.264 3H2.5a.5.5 0 0 0-.5.5zm-.367 1a.5.5 0 0 0-.496.562l.64 5.124A1.5 1.5 0 0 0 3.266 14h9.468a1.5 1.5 0 0 0 1.489-1.314l.64-5.124A.5.5 0 0 0 14.367 7z"/></svg>
+    開く
+    <!-- .md/.markdown/.txt（Markdown取り込み）・.pdf（既存PDFへの直接注釈）・.json（続きから編集）の
+         全てをここで受け付け、拡張子でJS側（handleOpenedFile）が処理を振り分ける（ボタンは増やさない方針）。 -->
+    <input id="loadInput" type="file" accept=".md,.markdown,text/markdown,.txt,text/plain,application/json,.json,application/pdf,.pdf">
+  </label>
+  <button id="saveBtn" type="button" class="btn-primary" data-tip="今の内容を.jsonファイルとして保存">
+    <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v4.5h2a.5.5 0 0 1 .354.854l-2.5 2.5a.5.5 0 0 1-.708 0l-2.5-2.5A.5.5 0 0 1 5.5 6.5h2V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1z"/></svg>
+    .json
+  </button>
+  <button id="saveMdBtn" type="button" class="btn-primary" data-tip="今の内容を.mdファイルとして書き出す（.mdを開いた直後ならCtrl+Sも同じファイル名で書き出す＝実質の上書き。PDFモードでは使えません）">
+    <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
+    .md
+  </button>
+  <button id="savePdfBtn" type="button" class="btn-primary" data-tip="A4のPDFとして保存（印刷ダイアログが開くので、保存先で「PDFに保存」を選んでください）">
+    <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zM1.6 11.85H0v3.999h.791v-1.342h.803q.43 0 .732-.173.305-.175.463-.474a1.4 1.4 0 0 0 .161-.677q0-.375-.158-.677a1.2 1.2 0 0 0-.46-.477q-.3-.18-.732-.179m.545 1.333a.8.8 0 0 1-.085.38.57.57 0 0 1-.238.241.8.8 0 0 1-.375.082H.788V12.48h.66q.327 0 .512.181.185.183.185.522m1.217-1.333v3.999h1.46q.602 0 .998-.237a1.45 1.45 0 0 0 .595-.689q.196-.45.196-1.084 0-.63-.196-1.075a1.43 1.43 0 0 0-.589-.68q-.396-.234-1.005-.234zm.791.645h.563q.371 0 .609.152a.9.9 0 0 1 .354.454q.118.302.118.753a2.3 2.3 0 0 1-.068.592 1.1 1.1 0 0 1-.196.422.8.8 0 0 1-.334.252 1.3 1.3 0 0 1-.483.082h-.563zm3.743 1.763v1.591h-.79V11.85h2.548v.653H7.896v1.117h1.606v.638z"/></svg>
+    .pdf
+  </button>
+</div>
+
+<!-- 本文（左カラム）の書式ツールバー。配置・インデント・ぶら下げ・スタイルはカーソルのある段落
+     （複数段落にまたがる選択時はその全段落）へ、太字・下線・傍点は選択範囲の文字へ適用する。
+     PDFモードでは隠れる（setMode参照）。sidenote-pdf-docから移植。
+     ボタンは.toolbar-format側のmousedownでpreventDefaultし、クリックしても#docの
+     フォーカス・選択範囲を失わないようにする（失うとどの段落・範囲に適用すべきか分からなくなるため）。 -->
+<div class="toolbar toolbar-format" id="formatToolbar">
+  <span class="fmt-unit">
+    <span class="fmt-group-label">配置</span>
+    <span class="fmt-group">
+      <button type="button" class="fmt-btn fmt-btn-2ch" data-align="left" title="左揃え">左</button>
+      <button type="button" class="fmt-btn fmt-btn-2ch" data-align="center" title="中央揃え">中</button>
+      <button type="button" class="fmt-btn fmt-btn-2ch" data-align="right" title="右揃え">右</button>
+    </span>
+  </span>
+  <span class="sep"></span>
+  <span class="fmt-unit">
+    <span class="fmt-group-label">インデント</span>
+    <span class="fmt-group">
+      <button type="button" class="fmt-btn fmt-btn-2ch" id="indentDecBtn" title="インデントを減らす">−</button>
+      <button type="button" class="fmt-btn fmt-btn-2ch" id="indentIncBtn" title="インデントを増やす">＋</button>
+    </span>
+  </span>
+  <span class="sep"></span>
+  <span class="fmt-unit">
+    <span class="fmt-group-label">ぶら下げ</span>
+    <span class="fmt-group">
+      <button type="button" class="fmt-btn fmt-btn-2ch" id="hangingDecBtn" title="ぶら下げの幅を減らす">−</button>
+      <span class="fmt-label" id="hangingLabel">オフ</span>
+      <button type="button" class="fmt-btn fmt-btn-2ch" id="hangingIncBtn" title="ぶら下げの幅を増やす（1〜3字。2行目以降だけを字下げします。番号付き項目の折り返しに）">＋</button>
+    </span>
+  </span>
+  <span class="sep"></span>
+  <span class="fmt-group">
+    <button type="button" class="fmt-btn fmt-btn-bold" id="boldBtn" title="太字（Ctrl+B）">B</button>
+    <button type="button" class="fmt-btn fmt-btn-underline" id="underlineBtn" title="下線（Ctrl+U）">U</button>
+    <button type="button" class="fmt-btn fmt-btn-kenten" id="kentenBtn" title="傍点（強調したい範囲を選択してから押してください）">傍点</button>
+  </span>
+  <span class="sep"></span>
+  <span class="fmt-unit">
+    <span class="fmt-group-label">スタイル</span>
+    <span class="fmt-group">
+      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="" title="本文（見出しを解除）">本文</button>
+      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="h1" title="見出し1">H1</button>
+      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="h2" title="見出し2">H2</button>
+      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="h3" title="見出し3">H3</button>
+    </span>
+  </span>
+</div>
+</div>
+
+<div class="title-row">
+  <div class="title-label">タイトル（本文の見出し・.json保存名に使用）</div>
+  <input id="titleInput" type="text" placeholder="例：資料A、〇〇案件メモ　※「sidenote-資料A-20260819-2306.json」と保存されます">
+  <!-- .mdファイルを開いている間だけ、実際のファイル名（Ctrl+Sで上書きされる先）をここに表示する。
+       上のタイトルはMarkdown見出し(#)や.json保存名のもとになる別の値なので、実ファイル名とは別に示す。 -->
+  <div id="openedFileNote" class="opened-file-note" hidden></div>
+</div>
+<div id="saveStatus"></div>
+
+<div class="dropdown-panel" id="settingsPanel" hidden>
+  <div class="dropdown-panel-head">
+    <span class="dropdown-panel-title">設定</span>
+    <button type="button" class="dropdown-close" id="settingsClose" aria-label="閉じる">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>
+    </button>
+  </div>
+  <div class="settings-row">
+    <span class="settings-dot" data-color="black"></span>
+    <input id="nameBlack" type="text" maxlength="12" placeholder="自分">
+  </div>
+  <div class="settings-row">
+    <span class="settings-dot" data-color="blue"></span>
+    <input id="nameBlue" type="text" maxlength="12" placeholder="共有相手">
+  </div>
+  <div class="settings-row">
+    <span class="settings-dot" data-color="red"></span>
+    <span class="settings-fixed">重要（固定・名前は付けられません）</span>
+  </div>
+  <label class="settings-toggle">
+    <input type="checkbox" id="showNamesToggle">
+    サイドノートに名前（自分／共有相手／重要）を表示する
+  </label>
+  <label class="settings-toggle">
+    <input type="checkbox" id="stickyToolbarToggle">
+    メニューを画面上部に固定する
+  </label>
+</div>
+
+<div class="dropdown-panel" id="themePanel" hidden>
+  <div class="dropdown-panel-head">
+    <span class="dropdown-panel-title">デザイン</span>
+    <button type="button" class="dropdown-close" id="themeClose" aria-label="閉じる">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>
+    </button>
+  </div>
+  <div class="theme-grid">
+    <button type="button" class="theme-swatch" data-theme-id="editorial">
+      <span class="theme-swatch-name">エディトリアル（雑誌風）</span>
+      <span class="theme-swatch-desc">雑誌風・明朝・ゆったり</span>
+    </button>
+    <button type="button" class="theme-swatch" data-theme-id="minimal">
+      <span class="theme-swatch-name">文書（公文書風）</span>
+      <span class="theme-swatch-desc">公文書仕様に近い白黒</span>
+    </button>
+    <button type="button" class="theme-swatch" data-theme-id="flat">
+      <span class="theme-swatch-name">フラット</span>
+      <span class="theme-swatch-desc">カード区切りのSaaS系</span>
+    </button>
+    <button type="button" class="theme-swatch" data-theme-id="dark">
+      <span class="theme-swatch-name">ダークUI</span>
+      <span class="theme-swatch-desc">分析ツール風・集中読解</span>
+    </button>
+    <button type="button" class="theme-swatch" data-theme-id="wamodan">
+      <span class="theme-swatch-name">和モダン</span>
+      <span class="theme-swatch-desc">墨と紺、装飾ゼロ</span>
+    </button>
+    <button type="button" class="theme-swatch" data-theme-id="gazette">
+      <span class="theme-swatch-name">官報</span>
+      <span class="theme-swatch-desc">太いゴシック・角ゼロ・朱色</span>
+    </button>
+    <button type="button" class="theme-swatch" data-theme-id="notebook">
+      <span class="theme-swatch-name">ノート</span>
+      <span class="theme-swatch-desc">丸みと暖色、個人メモの柔らかさ</span>
+    </button>
+    <!-- 「カスタマイズ」だけは他のスウォッチと違いテーマを適用せず、見出し（H1〜H3）の見た目や
+         項番の型ごとのインデント・ぶら下げを決める「項番設定」パネルを開く（app.js参照）。
+         data-theme-idを持たせない＝テーマ一覧のクリック処理（applyTheme）の対象から外れる。 -->
+    <button type="button" class="theme-swatch theme-swatch-customize" id="customizeThemeBtn">
+      <span class="theme-swatch-name">カスタマイズ</span>
+      <span class="theme-swatch-desc">見出しの大きさ・項番のインデントを調整</span>
+    </button>
+  </div>
+</div>
+
+<!-- 「項番設定」：見出し（H1〜H3）の見た目と、項番の型（第１／１／⑴／ア）ごとのインデント・ぶら下げを
+     設定するパネル。どちらもこの文書の.jsonに保存される（serializeProject/applyProjectData参照）。
+     「項番を一括適用」は文書内の全段落を先頭のテキストで判定し、一致した型の設定をまとめて書き込む
+     （detectNumberingType/applyNumbering参照）。デザインパネルの「カスタマイズ」から開く
+     （sidenote-pdf-docから移植）。 -->
+<div class="dropdown-panel dropdown-panel-wide" id="numberingPanel" hidden>
+  <div class="dropdown-panel-head">
+    <span class="dropdown-panel-title">項番設定（カスタマイズ）</span>
+    <button type="button" class="dropdown-close" id="numberingClose" aria-label="閉じる">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>
+    </button>
+  </div>
+  <div class="panel-heading">見出しスタイル（H1〜H3）</div>
+  <div class="settings-row style-set-row">
+    <span class="row-tag">H1</span>
+    <label class="row-field">文字サイズ<input type="number" id="h1SizeInput" min="6" max="72" step="0.5" placeholder="本文と同じ">pt</label>
+    <label class="row-check"><input type="checkbox" id="h1BoldToggle">太字</label>
+  </div>
+  <div class="settings-row style-set-row">
+    <span class="row-tag">H2</span>
+    <label class="row-field">文字サイズ<input type="number" id="h2SizeInput" min="6" max="72" step="0.5" placeholder="本文と同じ">pt</label>
+    <label class="row-check"><input type="checkbox" id="h2BoldToggle">太字</label>
+  </div>
+  <div class="settings-row style-set-row">
+    <span class="row-tag">H3</span>
+    <label class="row-field">文字サイズ<input type="number" id="h3SizeInput" min="6" max="72" step="0.5" placeholder="本文と同じ">pt</label>
+    <label class="row-check"><input type="checkbox" id="h3BoldToggle">太字</label>
+  </div>
+
+  <div class="panel-heading panel-heading-2nd">項番（行頭の型ごとのインデント・ぶら下げ）</div>
+  <div class="settings-row num-set-row">
+    <span class="row-tag">第１型</span>
+    <label class="row-field">インデント
+      <select id="numDaiIndent">
+        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+      </select>
+    </label>
+    <label class="row-field">ぶら下げ
+      <select id="numDaiHanging">
+        <option value="0">オフ</option><option value="1">1字</option><option value="2">2字</option><option value="3">3字</option>
+      </select>
+    </label>
+  </div>
+  <div class="settings-row num-set-row">
+    <span class="row-tag">１型</span>
+    <label class="row-field">インデント
+      <select id="numArabicIndent">
+        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+      </select>
+    </label>
+    <label class="row-field">ぶら下げ
+      <select id="numArabicHanging">
+        <option value="0">オフ</option><option value="1">1字</option><option value="2">2字</option><option value="3">3字</option>
+      </select>
+    </label>
+  </div>
+  <div class="settings-row num-set-row">
+    <span class="row-tag">⑴型</span>
+    <label class="row-field">インデント
+      <select id="numParenIndent">
+        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+      </select>
+    </label>
+    <label class="row-field">ぶら下げ
+      <select id="numParenHanging">
+        <option value="0">オフ</option><option value="1">1字</option><option value="2">2字</option><option value="3">3字</option>
+      </select>
+    </label>
+  </div>
+  <div class="settings-row num-set-row">
+    <span class="row-tag">ア型</span>
+    <label class="row-field">インデント
+      <select id="numKanaIndent">
+        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+      </select>
+    </label>
+    <label class="row-field">ぶら下げ
+      <select id="numKanaHanging">
+        <option value="0">オフ</option><option value="1">1字</option><option value="2">2字</option><option value="3">3字</option>
+      </select>
+    </label>
+  </div>
+
+  <button type="button" id="applyNumberingBtn" class="panel-apply-btn">項番を一括適用</button>
+  <p class="panel-hint">段落の先頭が「第１」「１、」「⑴」「ア、」のような型に一致する段落だけ、上の設定でインデント・ぶら下げをまとめて書き込みます。すでにインデント・ぶら下げを手動で変えた段落は対象から外れます（保護されます）。この設定はこの文書の.jsonに保存されます。</p>
+</div>
+
+<div class="doc-wrap">
+  <div class="doc-left">
+    <div class="doc-label" id="docLabel">本文（Markdown・テキスト・画像）</div>
+    <div class="doc-stack" id="docStack">
+      <div id="doc" contenteditable="true"></div>
+      <div id="docSample" aria-hidden="true">（例）「開く」からMarkdown・PDFファイルを選ぶか、ここへドラッグ＆ドロップしてください。</div>
+    </div>
+    <!-- PDFモード（「開く」で.pdfを選んだ時）はdoc-stackの代わりにこちらを表示する。
+         ページ（.pdf-page）をJSで縦に積み、テキストPDFはテキスト選択、スキャンPDFはクリック／
+         ドラッグでノートの位置を指定する（自動判定、詳しくはapp.js参照。sidenote-pdf-docから移植）。 -->
+    <div id="pdfViewer" hidden></div>
+    <!-- 段落ホバー時に出す「＋画像」「×削除」。#docの外側に1つだけ置き、位置はJSで合わせる
+         （#docの中に直接置くと、保存(.json)やPDF印刷が本文の一部として拾ってしまうため）。 -->
+    <div class="para-hover" id="paraHover" hidden>
+      <label class="para-hover-btn" title="この段落の直後に画像を挿入">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/><path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1z"/></svg>
+        <input type="file" id="paraHoverFile" accept="image/*" multiple hidden>
+      </label>
+      <button type="button" class="para-hover-btn para-hover-del" id="paraHoverDel" title="この段落を削除">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="doc-right" id="docRight"></div>
+</div>
+
+<!-- 印刷（PDF保存）専用の版面。画面には出さず、印刷時だけ#printDocのみを表示する。 -->
+<div id="printDoc"></div>
+
+<div class="note-popover" id="notePopover" hidden>
+  <div class="color-picker" id="colorPicker">
+    <button type="button" class="color-swatch" data-color="black">自分</button>
+    <button type="button" class="color-swatch" data-color="blue">共有相手</button>
+    <button type="button" class="color-swatch" data-color="red">重要</button>
+  </div>
+  <textarea id="notePopoverInput" rows="3" placeholder="このコメントの内容を入力"></textarea>
+  <div class="phint">選択して Ctrl+B（太字）／ Ctrl+U（下線）、または **太字** ／ &lt;u&gt;下線&lt;/u&gt; と直接入力</div>
+  <div class="row">
+    <button id="notePopoverAdd" type="button" class="primary">追加</button>
+    <button id="notePopoverCancel" type="button">キャンセル</button>
+  </div>
+</div>
+
+<!-- 文字サイズ・1行文字数の目安（目立たせない豆知識程度の位置づけ）。テーマはフォント種類と
+     色だけを変え、サイズ・段組み幅はテーマ共通の固定値なので、どのテーマでも成り立つ表記。 -->
+<footer class="app-footer">画面表示は本文15px・1行37字／PDF書き出しはサイドバーがあれば本文10.5pt・1行31字、無ければ本文12pt・1行37字が目安です（全角1文字≒1em換算）。</footer>
+
+<script src="md-parser.js?v=1"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>

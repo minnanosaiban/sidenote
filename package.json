@@ -1,0 +1,13 @@
+{
+  "name": "sidenote",
+  "private": true,
+  "version": "0.1.0",
+  "description": "サイドノート作成ツール：テキスト・Markdown・PDFに右側のサイドノートで注釈を付け、書式や項番も整えられるツール（ブラウザ完結・Cloudflare Pages）。sidenote-pdf・sidenote-pdf-docを統合",
+  "scripts": {
+    "dev": "wrangler pages dev",
+    "deploy": "wrangler pages deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.105.0"
+  }
+}

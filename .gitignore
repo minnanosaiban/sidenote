@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+.dev.vars
+
+# 動作確認用に置いた書き出しファイルは絶対にコミットしない
+*.pdf
+*.zip
