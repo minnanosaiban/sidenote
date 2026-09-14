@@ -68,6 +68,23 @@ try {
           <li>Ctrl+V ペースト</li>
         </ul>
       </div>
+
+      <!-- 「デザイン」は当初のアプリイメージ通り、ドロップダウンではなくヒーロー内に常時表示する
+           グリッドにする（ボタンは名前のみ・説明文は持たない）。「カスタマイズ」だけは他と違い
+           テーマを適用せず「項番設定」パネルを開く特殊ボタン（data-theme-idを持たせない。app.js参照）。 -->
+      <div class="hero-theme-section">
+        <div class="hero-theme-title">デザイン</div>
+        <div class="theme-grid" id="themeGrid">
+          <button type="button" class="theme-swatch" data-theme-id="editorial">雑誌風</button>
+          <button type="button" class="theme-swatch" data-theme-id="minimal">公文書風</button>
+          <button type="button" class="theme-swatch" data-theme-id="flat">フラット</button>
+          <button type="button" class="theme-swatch" data-theme-id="dark">ダークUI</button>
+          <button type="button" class="theme-swatch" data-theme-id="wamodan">和モダン</button>
+          <button type="button" class="theme-swatch" data-theme-id="gazette">官報</button>
+          <button type="button" class="theme-swatch" data-theme-id="notebook">ノート</button>
+          <button type="button" class="theme-swatch theme-swatch-customize" id="customizeThemeBtn">カスタマイズ</button>
+        </div>
+      </div>
     </div>
 
     <div class="hero-right">
@@ -125,7 +142,6 @@ try {
 <div class="toolbar-sticky">
 <div class="toolbar">
   <button id="settingsBtn" type="button" class="btn-outline">設定</button>
-  <button id="themeBtn" type="button" class="btn-outline">デザイン</button>
   <button id="resumeDiscard" type="button" class="btn-outline">新しい作業</button>
   <button id="resumeApply" type="button" class="btn-outline" disabled>続きから再開</button>
   <label id="openLabel" class="filebtn2 btn-outline" data-tip="Markdownファイル(.md)・PDFファイル、または保存した.jsonファイルを開く">
@@ -235,52 +251,6 @@ try {
     <input type="checkbox" id="stickyToolbarToggle">
     メニューを画面上部に固定する
   </label>
-</div>
-
-<div class="dropdown-panel" id="themePanel" hidden>
-  <div class="dropdown-panel-head">
-    <span class="dropdown-panel-title">デザイン</span>
-    <button type="button" class="dropdown-close" id="themeClose" aria-label="閉じる">
-      <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>
-    </button>
-  </div>
-  <div class="theme-grid">
-    <button type="button" class="theme-swatch" data-theme-id="editorial">
-      <span class="theme-swatch-name">エディトリアル（雑誌風）</span>
-      <span class="theme-swatch-desc">雑誌風・明朝・ゆったり</span>
-    </button>
-    <button type="button" class="theme-swatch" data-theme-id="minimal">
-      <span class="theme-swatch-name">文書（公文書風）</span>
-      <span class="theme-swatch-desc">公文書仕様に近い白黒</span>
-    </button>
-    <button type="button" class="theme-swatch" data-theme-id="flat">
-      <span class="theme-swatch-name">フラット</span>
-      <span class="theme-swatch-desc">カード区切りのSaaS系</span>
-    </button>
-    <button type="button" class="theme-swatch" data-theme-id="dark">
-      <span class="theme-swatch-name">ダークUI</span>
-      <span class="theme-swatch-desc">分析ツール風・集中読解</span>
-    </button>
-    <button type="button" class="theme-swatch" data-theme-id="wamodan">
-      <span class="theme-swatch-name">和モダン</span>
-      <span class="theme-swatch-desc">墨と紺、装飾ゼロ</span>
-    </button>
-    <button type="button" class="theme-swatch" data-theme-id="gazette">
-      <span class="theme-swatch-name">官報</span>
-      <span class="theme-swatch-desc">太いゴシック・角ゼロ・朱色</span>
-    </button>
-    <button type="button" class="theme-swatch" data-theme-id="notebook">
-      <span class="theme-swatch-name">ノート</span>
-      <span class="theme-swatch-desc">丸みと暖色、個人メモの柔らかさ</span>
-    </button>
-    <!-- 「カスタマイズ」だけは他のスウォッチと違いテーマを適用せず、見出し（H1〜H3）の見た目や
-         項番の型ごとのインデント・ぶら下げを決める「項番設定」パネルを開く（app.js参照）。
-         data-theme-idを持たせない＝テーマ一覧のクリック処理（applyTheme）の対象から外れる。 -->
-    <button type="button" class="theme-swatch theme-swatch-customize" id="customizeThemeBtn">
-      <span class="theme-swatch-name">カスタマイズ</span>
-      <span class="theme-swatch-desc">見出しの大きさ・項番のインデントを調整</span>
-    </button>
-  </div>
 </div>
 
 <!-- 「項番設定」：見出し（H1〜H3）の見た目と、項番の型（第１／１／⑴／ア）ごとのインデント・ぶら下げを

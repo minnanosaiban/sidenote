@@ -30,9 +30,9 @@ const settingsClose = document.getElementById("settingsClose");
 const nameBlackInput = document.getElementById("nameBlack");
 const nameBlueInput = document.getElementById("nameBlue");
 const showNamesToggle = document.getElementById("showNamesToggle");
-const themeBtn = document.getElementById("themeBtn");
-const themePanel = document.getElementById("themePanel");
-const themeClose = document.getElementById("themeClose");
+// 「デザイン」はドロップダウンではなく、ヒーロー内に常時表示するグリッド（2026-09、当初の
+// アプリイメージに合わせて変更。ボタン自体はテーマを直接適用し、開閉は不要）。
+const themeGrid = document.getElementById("themeGrid");
 // ---- 本文の書式ツールバー（配置／インデント／ぶら下げ／太字下線／傍点／スタイル）と
 // 「項番設定」パネル、PDFモード用の要素参照（sidenote-pdf-docから移植） ----
 const formatToolbarEl = document.getElementById("formatToolbar");
@@ -1065,12 +1065,12 @@ function applyTheme(themeId) {
   const valid = THEMES.some((t) => t.id === themeId) ? themeId : DEFAULT_THEME;
   currentTheme = valid;
   document.documentElement.dataset.theme = valid;
-  themePanel.querySelectorAll("[data-theme-id]").forEach((btn) => {
+  themeGrid.querySelectorAll("[data-theme-id]").forEach((btn) => {
     btn.classList.toggle("selected", btn.dataset.themeId === valid);
   });
   try { localStorage.setItem(THEME_KEY, valid); } catch (err) { /* noop */ }
 }
-themePanel.querySelectorAll("[data-theme-id]").forEach((btn) => {
+themeGrid.querySelectorAll("[data-theme-id]").forEach((btn) => {
   btn.onclick = () => { applyTheme(btn.dataset.themeId); autoSaveDebounced(); };
 });
 (function loadThemeDefault() {
@@ -1092,9 +1092,7 @@ function toggleDropdownPanel(panelEl, btnEl) {
 }
 settingsBtn.onclick = () => toggleDropdownPanel(settingsPanel, settingsBtn);
 settingsClose.onclick = () => { settingsPanel.hidden = true; };
-themeBtn.onclick = () => toggleDropdownPanel(themePanel, themeBtn);
-themeClose.onclick = () => { themePanel.hidden = true; };
-// 「デザイン」パネル内の「カスタマイズ」は他のスウォッチと違い、テーマを適用せず「項番設定」
+// 「デザイン」グリッド内の「カスタマイズ」は他のスウォッチと違い、テーマを適用せず「項番設定」
 // パネルを開く（sidenote-pdf-docの書式機能をこの入り口にまとめる。カスタマイズの中身は
 // 見出し（H1〜H3）の見た目と項番の型ごとのインデント・ぶら下げ）。
 customizeThemeBtn.onclick = () => toggleDropdownPanel(numberingPanel, customizeThemeBtn);
@@ -1202,7 +1200,6 @@ function clearPendingHighlight() {
 
 function openPopover(rect) {
   settingsPanel.hidden = true;
-  themePanel.hidden = true;
   numberingPanel.hidden = true;
   popoverInput.value = "";
   popoverEl.hidden = false;
