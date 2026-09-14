@@ -29,7 +29,19 @@ const settingsPanel = document.getElementById("settingsPanel");
 const settingsClose = document.getElementById("settingsClose");
 const nameBlackInput = document.getElementById("nameBlack");
 const nameBlueInput = document.getElementById("nameBlue");
-const showNamesToggle = document.getElementById("showNamesToggle");
+// 「サイドノートに名前を表示する」の色ごとのチェックボックス（サイドノート欄の上部、2026-09に
+// 設定パネルから移設）。
+const showLabelInputs = {
+  black: document.getElementById("showLabelBlack"),
+  blue: document.getElementById("showLabelBlue"),
+  red: document.getElementById("showLabelRed"),
+};
+// メニュー1（ファイル操作の.toolbar）・メニュー2（書式ツールバー.toolbar-format）を、それぞれ独立に
+// 画面上部へ固定できる（ツールバー右の「メニュー1固定」「メニュー2固定」。2026-09、設定パネルの
+// 「メニューを画面上部に固定する」を1つに統合していたのを分割）。
+const toolbarMenu1El = document.getElementById("toolbarMenu1");
+const menu1StickyToggle = document.getElementById("menu1StickyToggle");
+const menu2StickyToggle = document.getElementById("menu2StickyToggle");
 // 「デザイン」はドロップダウンではなく、ヒーロー内に常時表示するグリッド（2026-09、当初の
 // アプリイメージに合わせて変更。ボタン自体はテーマを直接適用し、開閉は不要）。
 const themeGrid = document.getElementById("themeGrid");
@@ -189,8 +201,9 @@ const colorNames = { black: "自分", blue: "共有相手" };
 function colorLabel(color) {
   return color === "red" ? "重要" : (colorNames[color] || color);
 }
-// サイドノートに「自分：」等の名前を表示するかどうか（デフォルトはオフ＝表示しない。色分けだけで足りる場合が多いため）。
-let showAuthorLabel = false;
+// サイドノートに「自分：」等の名前を表示するかどうか（色ごと。デフォルトは全色オフ＝表示しない。
+// 色分けだけで足りる場合が多いため。サイドノート欄上部のチェックボックスで色ごとに切り替える）。
+const showAuthorLabelByColor = { black: false, blue: false, red: false };
 
 const debounce = (fn, ms) => {
   let t;
@@ -623,7 +636,7 @@ function buildPrintAsideEl(num, notes) {
   aside.appendChild(document.createTextNode(" "));
   notes.forEach((note, i) => {
     if (i > 0) aside.appendChild(document.createElement("br"));
-    if (showAuthorLabel) {
+    if (showAuthorLabelByColor[note.color]) {
       const strong = document.createElement("strong");
       strong.textContent = `${colorLabel(note.color)}：`;
       aside.appendChild(strong);
@@ -970,6 +983,11 @@ function updateColorSwatchLabels() {
   colorPickerEl.querySelectorAll(".color-swatch").forEach((btn) => {
     btn.textContent = colorLabel(btn.dataset.color);
   });
+  // サイドノート欄上部の「自分／共有相手／重要」チェックボックスのラベルも、色の名前設定に合わせる。
+  document.querySelectorAll(".label-toggle").forEach((label) => {
+    const text = label.querySelector(".label-text");
+    if (text) text.textContent = colorLabel(label.dataset.color);
+  });
 }
 colorPickerEl.querySelectorAll(".color-swatch").forEach((btn) => {
   btn.onclick = () => {
@@ -1010,41 +1028,55 @@ nameBlueInput.oninput = () => {
   autoSaveDebounced();
 };
 
-const SHOW_NAMES_KEY = "sidenote-show-names-v1";
-(function loadShowNamesDefault() {
+// 「サイドノートに名前を表示する」は色ごとの3つのチェックボックスにして、サイドノート欄の
+// 上部に常時表示する（2026-09、設定パネルの中に隠れていて気づきにくいという指摘を受けて変更。
+// アプリイメージの「□自分 □共有相手 □重要」参照）。オンにした色のノートだけ名前を添えて表示する。
+const SHOW_LABEL_KEY = "sidenote-show-labels-v1";
+(function loadShowLabelDefaults() {
   try {
-    const raw = localStorage.getItem(SHOW_NAMES_KEY);
-    if (raw !== null) showAuthorLabel = raw === "1";
+    const raw = localStorage.getItem(SHOW_LABEL_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    ["black", "blue", "red"].forEach((c) => {
+      if (typeof parsed[c] === "boolean") showAuthorLabelByColor[c] = parsed[c];
+    });
   } catch (err) { /* noop */ }
 })();
-showNamesToggle.checked = showAuthorLabel;
-showNamesToggle.onchange = () => {
-  showAuthorLabel = showNamesToggle.checked;
-  try { localStorage.setItem(SHOW_NAMES_KEY, showAuthorLabel ? "1" : "0"); } catch (err) { /* noop */ }
-  renumberAndLayout();
-};
+Object.keys(showLabelInputs).forEach((c) => {
+  showLabelInputs[c].checked = showAuthorLabelByColor[c];
+  showLabelInputs[c].onchange = () => {
+    showAuthorLabelByColor[c] = showLabelInputs[c].checked;
+    try { localStorage.setItem(SHOW_LABEL_KEY, JSON.stringify(showAuthorLabelByColor)); } catch (err) { /* noop */ }
+    renumberAndLayout();
+  };
+});
 
-// メニュー（ツールバー）を画面上部に固定するかどうか。この端末の個人設定としてlocalStorageへ。
-// 既定はfalse＝固定しない（.toolbar-sticky--staticをJS側で初期適用し、CSS既定の固定を打ち消す）。
-const stickyToolbarToggle = document.getElementById("stickyToolbarToggle");
-const toolbarStickyEl = document.querySelector(".toolbar-sticky");
-const STICKY_TOOLBAR_KEY = "sidenote-sticky-toolbar-v1";
-function applyStickyToolbar(sticky) {
-  toolbarStickyEl.classList.toggle("toolbar-sticky--static", !sticky);
+// メニュー1（ファイル操作）・メニュー2（書式ツールバー）は、それぞれ独立に画面上部へ固定できる
+// （ツールバー右の「メニュー1固定」「メニュー2固定」チェックボックス。この端末の個人設定として
+// localStorageへ。既定はどちらもfalse＝固定しない）。
+const MENU_STICKY_KEYS = { menu1: "sidenote-menu1-sticky-v1", menu2: "sidenote-menu2-sticky-v1" };
+const menuStickyState = { menu1: false, menu2: false };
+function applyMenuSticky(key, el, toggleEl) {
+  el.classList.toggle("menu-sticky", menuStickyState[key]);
+  toggleEl.checked = menuStickyState[key];
 }
-let stickyToolbar = false;
-(function loadStickyToolbarDefault() {
+["menu1", "menu2"].forEach((key) => {
   try {
-    const raw = localStorage.getItem(STICKY_TOOLBAR_KEY);
-    if (raw !== null) stickyToolbar = raw === "1";
+    const raw = localStorage.getItem(MENU_STICKY_KEYS[key]);
+    if (raw !== null) menuStickyState[key] = raw === "1";
   } catch (err) { /* noop */ }
-})();
-stickyToolbarToggle.checked = stickyToolbar;
-applyStickyToolbar(stickyToolbar);
-stickyToolbarToggle.onchange = () => {
-  stickyToolbar = stickyToolbarToggle.checked;
-  applyStickyToolbar(stickyToolbar);
-  try { localStorage.setItem(STICKY_TOOLBAR_KEY, stickyToolbar ? "1" : "0"); } catch (err) { /* noop */ }
+});
+applyMenuSticky("menu1", toolbarMenu1El, menu1StickyToggle);
+applyMenuSticky("menu2", formatToolbarEl, menu2StickyToggle);
+menu1StickyToggle.onchange = () => {
+  menuStickyState.menu1 = menu1StickyToggle.checked;
+  applyMenuSticky("menu1", toolbarMenu1El, menu1StickyToggle);
+  try { localStorage.setItem(MENU_STICKY_KEYS.menu1, menuStickyState.menu1 ? "1" : "0"); } catch (err) { /* noop */ }
+};
+menu2StickyToggle.onchange = () => {
+  menuStickyState.menu2 = menu2StickyToggle.checked;
+  applyMenuSticky("menu2", formatToolbarEl, menu2StickyToggle);
+  try { localStorage.setItem(MENU_STICKY_KEYS.menu2, menuStickyState.menu2 ? "1" : "0"); } catch (err) { /* noop */ }
 };
 
 // ---- デザイン（テーマ）切替 ----
@@ -2311,7 +2343,7 @@ function layoutSidenotes(ordered) {
       const textEl = document.createElement("span");
       textEl.className = "sidenote-text";
       textEl.style.color = AUTHOR_COLOR_HEX[note.color] || AUTHOR_COLOR_HEX.black;
-      const namePrefix = showAuthorLabel ? `<strong>${escapeHtml(colorLabel(note.color))}：</strong>` : "";
+      const namePrefix = showAuthorLabelByColor[note.color] ? `<strong>${escapeHtml(colorLabel(note.color))}：</strong>` : "";
       textEl.innerHTML = namePrefix + formatNoteText(note.text);
 
       const rmBtn = document.createElement("button");

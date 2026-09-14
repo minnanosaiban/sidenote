@@ -168,15 +168,22 @@ body {
    最長ラベル「続きから再開」が入る範囲で少しだけ詰める（8×104px＋gap8px×7＝888px）。 */
 .toolbar .btn-outline, .toolbar .btn-primary, .toolbar .filebtn2 { width: 104px; }
 
-/* 文章が長くなるとボタンに手が届かなくなるため、ツールバーを画面上部に固定する。
-   「設定」の「メニューを画面上部に固定する」をオフにすると.toolbar-sticky--staticが付き、
-   固定をやめて他の要素と同じく普通に流れる（position以外はそのまま）。 */
+/* 文章が長くなるとボタンに手が届かなくなるため、メニュー1（ファイル操作）・メニュー2（書式）は
+   それぞれ独立に画面上部へ固定できる（ツールバー右の「メニュー1固定」「メニュー2固定」チェック
+   ボックス、app.js参照）。.menu-stickyが付いた行だけposition:stickyにする。メニュー2が固定の時は
+   メニュー1の高さぶんだけ下にずらして重ならないようにする（メニュー1が非固定の場合はその分の
+   余白が浮くが、両方固定/両方非固定が主な使い方なので許容する）。 */
 .toolbar-sticky {
-  position: sticky; top: 8px; z-index: 20; background: #f4f5f7;
   max-width: 900px; margin: 0 auto 16px; padding-top: 48px;
 }
-.toolbar-sticky--static { position: static; }
-.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; align-items: center; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; align-items: center; background: #f4f5f7; }
+#toolbarMenu1.menu-sticky { position: sticky; top: 8px; z-index: 20; }
+#formatToolbar.menu-sticky { position: sticky; top: 56px; z-index: 19; }
+.menu-pin-toggles { display: flex; gap: 12px; margin-left: auto; }
+.menu-pin-toggle {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--tx-muted-2); cursor: pointer;
+}
+.menu-pin-toggle input { flex: none; }
 
 /* ツールバーのボタンはtitle属性（ブラウザ標準の吹き出し＝枠線と影で囲まれ、見た目を制御できない）
    をやめ、data-tip属性＋この自前ツールチップに置き換える。枠線も影も付けず、
@@ -247,21 +254,34 @@ body {
 .hero-theme-section { margin-top: 28px; }
 .hero-theme-title { font-size: 16px; font-weight: 700; color: var(--tx-text); margin-bottom: 12px; }
 .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 460px; }
+/* グレー地＋影で「押せるボタン」らしい立体感を出す（2026-09、白地の枠線だけだと
+   ボタンに見えないという指摘を受けて変更）。選択中は.btn-primaryと同じ黒地・白文字に反転させ、
+   今どのデザインを選んでいるか一目で分かるようにする。 */
 .theme-swatch {
-  height: 40px; border: 1px solid var(--tx-border); background: #fff; border-radius: var(--tx-radius-btn);
+  height: 40px; border: 1px solid var(--tx-border); background: var(--tx-bg-muted); border-radius: var(--tx-radius-btn);
   font-size: 13px; font-weight: 500; color: var(--tx-text); cursor: pointer; text-align: center;
+  box-shadow: var(--tx-shadow-sm); transition: box-shadow .15s, background .15s;
 }
-.theme-swatch:hover { background: #f4f4f5; }
-.theme-swatch.selected { border-color: var(--tx-text); background: var(--tx-bg-muted); font-weight: 700; }
+.theme-swatch:hover { background: #e8e8ea; box-shadow: var(--tx-shadow-md); }
+.theme-swatch.selected {
+  background: var(--tx-text); color: #fff; border-color: var(--tx-text); font-weight: 700;
+}
 
 
 .doc-wrap { display: flex; gap: 28px; max-width: 900px; margin: 0 auto; }
 .doc-left { flex: 1 1 auto; min-width: 0; position: relative; }   /* 段落ホバー時のアイコン(.para-hover)の位置基準 */
 .doc-label { font-size: 12.5px; color: #8a8f98; margin: 0 0 6px; }
-.doc-right {
-  width: 260px; flex: none; position: relative;   /* 区切りは罫線ではなくgap（余白）だけに任せる */
-  font-family: var(--font-body);
-}
+.doc-right-col { width: 260px; flex: none; }   /* 区切りは罫線ではなくgap（余白）だけに任せる */
+.doc-right { position: relative; font-family: var(--font-body); }
+/* サイドノート欄の上部に常時表示する「自分／共有相手／重要」の名前表示チェックボックス
+   （2026-09、設定パネルから移設）。チロム（アプリ側UI）扱いなのでテーマの対象外にする。 */
+.doc-right-labels { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 12px; }
+.label-toggle { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--tx-muted-2); cursor: pointer; }
+.label-toggle input { flex: none; }
+.label-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.label-toggle[data-color="black"] .label-dot { background: #31333f; }
+.label-toggle[data-color="blue"] .label-dot { background: #1a73e8; }
+.label-toggle[data-color="red"] .label-dot { background: #d33; }
 
 /* ドラッグ＆ドロップでMarkdownファイルを開く時の目印。 */
 .doc-left.drag-over #doc { outline: 2px dashed var(--accent); outline-offset: 4px; }
@@ -464,7 +484,7 @@ body {
 
 @media (max-width: 860px) {
   .doc-wrap { flex-direction: column; }
-  .doc-right { display: none; }   /* スマホ幅ではサイドノート欄自体を非表示にする（横並びの余白が無いため） */
+  .doc-right-col { display: none; }   /* スマホ幅ではサイドノート欄自体を非表示にする（横並びの余白が無いため） */
   .para-hover { left: auto; right: 4px; margin-left: 0; }
 }
 

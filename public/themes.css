@@ -52,6 +52,18 @@ html[data-theme="minimal"] {
   --font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
+/* 公文書は見出しを大きくせず、本文と同じ文字サイズのまま太字だけで区別するのが実際の仕様に近い
+   （2026-09、イメージ画像に合わせて追加）。画面・印刷（PDF化）の両方に効かせる。 */
+html[data-theme="minimal"] .para-h1,
+html[data-theme="minimal"] .para-h2,
+html[data-theme="minimal"] .para-h3 {
+  font-size: 1em; font-weight: 700; line-height: 2;
+}
+html[data-theme="minimal"] body.print-active .print-h1,
+html[data-theme="minimal"] body.print-active .print-h2,
+html[data-theme="minimal"] body.print-active .print-h3 {
+  font-size: inherit; font-weight: 700;
+}
 
 /* ③ フラット：court-calendarのデザインシステムに近い、カード区切りのSaaS系。 */
 html[data-theme="flat"] {
