@@ -177,9 +177,14 @@ body {
   max-width: 900px; margin: 0 auto 16px; padding-top: 48px;
 }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; align-items: center; background: #f4f5f7; }
+/* #toolbarMenu1は常にposition:relativeにしておき（.menu-pin-togglesの絶対配置の基準）、
+   固定オンの間だけ.menu-stickyでposition:stickyに切り替える（どちらもabsolute子の基準になれる）。 */
+#toolbarMenu1 { position: relative; }
 #toolbarMenu1.menu-sticky { position: sticky; top: 8px; z-index: 20; }
 #formatToolbar.menu-sticky { position: sticky; top: 56px; z-index: 19; }
-.menu-pin-toggles { display: flex; gap: 12px; margin-left: auto; }
+/* ボタン列（flexで折り返す）とは別に、右上の余白（.toolbar-stickyのpadding-top）へ絶対配置する。
+   #toolbarMenu1の子なので、メニュー1固定時は一緒に画面上部へ追従し、固定中もチェックを外せる。 */
+.menu-pin-toggles { position: absolute; top: -34px; right: 0; display: flex; gap: 12px; }
 .menu-pin-toggle {
   display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--tx-muted-2); cursor: pointer;
 }

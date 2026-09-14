@@ -48,7 +48,10 @@ html[data-theme="minimal"] {
   --rule: #cfcfcf;
   --surface: transparent;
   --radius: 0px;
-  --font-head: 'Zen Old Mincho', 'Noto Serif JP', serif;
+  /* 見出し（H1〜H3）だけメイリオの太字にする（本文は明朝のまま）。Meiryoはローカルの
+     Windowsフォントなので@importやWebフォント読み込みは不要、無い環境ではNoto Sans JPへ
+     フォールバックする（2026-09、指定を受けて変更）。 */
+  --font-head: 'Meiryo', 'Noto Sans JP', sans-serif;
   --font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
@@ -157,7 +160,7 @@ html[data-theme="editorial"] body.print-active {
   --p-accent: #3f5142;
 }
 html[data-theme="minimal"] body.print-active {
-  --p-font-head: 'Zen Old Mincho', 'Noto Serif JP', serif;
+  --p-font-head: 'Meiryo', 'Noto Sans JP', sans-serif;
   --p-font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
   --p-accent: #8a1f1f;
 }
