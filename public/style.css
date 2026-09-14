@@ -225,9 +225,9 @@ body {
 }
 
 
-/* .title-row（ツールバー→ファイル名の間、24px）と同じ余白を、ファイル名→本文の間にも作る
-   （2026-09、本文側だけ余白が無いという指摘を受けて追加）。 */
-.doc-wrap { display: flex; gap: 28px; max-width: 900px; margin: 24px auto 0; }
+/* ファイル名→本文の間の余白は#saveStatus（margin-top 8px + min-height 1.4em）が担っている
+   （#saveStatusを一時的にヒーロー側へ移していた間だけ、ここにもmargin-topが必要だった）。 */
+.doc-wrap { display: flex; gap: 28px; max-width: 900px; margin: 0 auto; }
 .doc-left { flex: 1 1 auto; min-width: 0; position: relative; }   /* 段落ホバー時のアイコン(.para-hover)の位置基準 */
 .doc-label { font-size: 12.5px; color: #8a8f98; margin: 0 0 6px; }
 .doc-right-col { width: 260px; flex: none; }   /* 区切りは罫線ではなくgap（余白）だけに任せる */
@@ -280,7 +280,13 @@ body {
 }
 #doc.empty ~ #docSample { display: block; }
 
-.para { margin: 0; }   /* テキスト段落＝1行ぶんの単位。段落間の余白は空の段落（空行）の高さで作る */
+.para { margin: 0; }   /* テキスト段落＝1行ぶんの単位 */
+/* 段落と段落の間は、この一定の余白だけで区切る（以前はMarkdown取り込み時に空行ぶんの空段落を
+   自動で挟んでいたが、Enterで改行していない箇所まで間延びして見えるという指摘を受けて廃止した。
+   2026-09）。これ以上の余白が欲しい時はユーザーが実際に空行（Enter）を打てば、その空段落の
+   高さぶんが上乗せされる。リスト項目（.para-li）同士は詰めて表示したいので対象外にする。 */
+.para:not(.para-opaque):not(.para-li) { margin-bottom: .6em; }
+.para:last-child { margin-bottom: 0; }
 /* 本文の1行を常時37字以内にする。CJKフォントは全角1文字がほぼ1em幅で設計されているため、
    max-width:37emで近似する（画像・表・水平線＝.para-opaqueは対象外）。 */
 .para:not(.para-opaque) { max-width: 37em; }
@@ -482,8 +488,8 @@ body.print-active .print-title {
    折り返し以外では絶対に改行されない）。サイドノートは対応する一文の直後としてインラインで埋め込み
    （buildPrintNode参照）、.print-asideのfloat:right＋マイナスマージンで段落の右の余白へ逃がす
    （Tufte CSSとして知られる余白注釈の定番手法）。
-   marginは持たせない：画面側の.para（margin:0、余白は空行の段落の高さだけで表現する）と
-   段落間の余白の作り方を揃えるため（MD取り込み時もこの前提で空の段落＝spacerを挟んでいる）。
+   marginは段落間の一定の余白（画面側の.para margin-bottom:.6emと同じ考え方。2026-09、
+   Markdown取り込み時に空行ぶんの空段落＝spacerを自動で挟む方式をやめたのに合わせて変更）。
    clearは意図的に付けない：floatした.print-asideを子に持つブロックにclearを付けると、そのasideが
    「まだ隣にfloatが残っている」扱いになり、次のブロックがそのasideの下まで律儀に待ってしまう
    （＝段落の長い注釈のぶんだけ余白が空いて見える不具合の原因）。見出し・引用・コードもこの段落と
@@ -492,8 +498,10 @@ body.print-active .print-para,
 body.print-active .print-h1, body.print-active .print-h2, body.print-active .print-h3,
 body.print-active .print-h4, body.print-active .print-h5, body.print-active .print-h6,
 body.print-active .print-quote, body.print-active .print-code {
-  width: 115mm; margin: 0; overflow-wrap: break-word;
+  width: 115mm; margin: 0 0 .6em; overflow-wrap: break-word;
 }
+/* リスト項目同士は画面（.para:not(.para-li)の余白から除外）と同じく詰める。 */
+body.print-active .print-li { margin-bottom: 0; }
 body.print-active .print-h1, body.print-active .print-h2, body.print-active .print-h3,
 body.print-active .print-h4, body.print-active .print-h5, body.print-active .print-h6 {
   font-family: var(--p-font-head, inherit); font-weight: 700;

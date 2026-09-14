@@ -31,8 +31,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Old+Mincho:wght@400;600&family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <!-- ?v=NUM はキャッシュ対策。style.css/themes.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
-<link rel="stylesheet" href="style.css?v=2">
-<link rel="stylesheet" href="themes.css?v=2">
+<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="themes.css?v=4">
 <!-- デザイン（テーマ）の初期反映を<body>のCSS読み込み前に済ませ、既定テーマへ一瞬だけ戻る
      ちらつき（FOUC）を防ぐ。app.js側の設定・保存内容と完全に同じキー・同じ既定値を使う。 -->
 <script>
@@ -85,10 +85,9 @@ try {
           <button type="button" class="theme-swatch theme-swatch-customize" id="customizeThemeBtn">カスタマイズ</button>
         </div>
       </div>
-      <!-- 「開いているファイル：〇〇.md」「Markdownを取り込みました（81ブロック）」等の状態表示。
+      <!-- 「開いているファイル：〇〇.md」＝今どのファイルを開いているかという、比較的静的な表示。
            2026-09、ツールバー付近からデザイングリッドの下へ移設。 -->
       <div id="openedFileNote" class="opened-file-note" hidden></div>
-      <div id="saveStatus"></div>
     </div>
 
     <div class="hero-right">
@@ -225,6 +224,12 @@ try {
   <div class="title-label">ファイル名</div>
   <input id="titleInput" type="text" placeholder="例：資料A、〇〇案件メモ　※「sidenote-資料A-20260819-2306.json」と保存されます">
 </div>
+<!-- 保存・読み込み・エラー等の状態表示。ヒーロー側の#openedFileNote（今開いているファイル名、
+   比較的静的）とは別物：こちらは保存・書き出し・エラー等の「たった今の結果」を伝えるための、
+   都度更新される表示なので、実際に操作しているこの近くに置く（2026-09、ヒーロー側へ一緒に
+   移設したところCtrl+Sの保存結果が画面外で見えず「保存されていないのでは」という指摘を受けて
+   ここへ戻した）。 -->
+<div id="saveStatus"></div>
 
 <!-- 「項番設定」：見出し（H1〜H3）の見た目と、項番の型（第１／１／⑴／ア）ごとのインデント・ぶら下げを
      設定するパネル。どちらもこの文書の.jsonに保存される（serializeProject/applyProjectData参照）。
@@ -375,6 +380,6 @@ try {
 <footer class="app-footer">画面表示は本文15px・1行37字／PDF書き出しはサイドバーがあれば本文10.5pt・1行31字、無ければ本文12pt・1行37字が目安です（全角1文字≒1em換算）。</footer>
 
 <script src="md-parser.js?v=1"></script>
-<script src="app.js?v=2"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

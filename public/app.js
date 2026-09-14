@@ -494,8 +494,14 @@ function blockParaToMarkdown(paraEl) {
     const prefix = orderedMatch ? `${orderedMatch[1]}. ` : "- ";
     return { type: "li", text: `${indent}${prefix}${paraInlineToMarkdown(paraEl)}` };
   }
-  const hMatch = paraEl.className.match(/\bpara-h([1-6])\b/);
-  if (hMatch) return { type: "heading", text: `${"#".repeat(Number(hMatch[1]))} ${paraInlineToMarkdown(paraEl)}` };
+  // 見出しは2通りありうる：Markdown取り込み由来の.para-hNクラス（h1〜h6）と、書式ツールバーの
+  // 「スタイル」ボタン（配置・インデントと同じdata-style属性、h1〜h3のみ）。後者はこれまでこの
+  // 判定に含まれておらず、ツールバーでH1〜H3にした段落が.md書き出しで#の付かないただの段落に
+  // なってしまっていた（2026-09指摘）。data-styleを優先し、無ければクラスを見る。
+  const styleLevel = /^h([1-3])$/.exec(paraEl.dataset.style || "");
+  const hClassMatch = paraEl.className.match(/\bpara-h([1-6])\b/);
+  const hLevel = styleLevel ? Number(styleLevel[1]) : (hClassMatch ? Number(hClassMatch[1]) : null);
+  if (hLevel) return { type: "heading", text: `${"#".repeat(hLevel)} ${paraInlineToMarkdown(paraEl)}` };
   if (paraEl.classList.contains("para-quote")) return { type: "blockquote", text: `> ${paraInlineToMarkdown(paraEl)}` };
   if (paraEl.classList.contains("para-code")) return { type: "code", text: "```\n" + paraEl.textContent + "\n```" };
   return { type: "paragraph", text: paraInlineToMarkdown(paraEl) };
@@ -660,6 +666,9 @@ function buildPrintPara(paraEl) {
   const tag = hMatch ? `h${hMatch[1]}` : isCode ? "pre" : isQuote ? "blockquote" : "p";
   const el = document.createElement(tag);
   el.className = hMatch ? `print-h${hMatch[1]}` : isCode ? "print-code" : isQuote ? "print-quote" : "print-para";
+  // リスト項目（.para-li）は画面と同じく項目間を詰めたいので、印刷側だけ余白を打ち消す目印を足す
+  // （style.cssの.print-li参照。2026-09、段落間の余白を空段落からmarginへ変えたのに合わせて追加）。
+  if (paraEl.classList.contains("para-li")) el.classList.add("print-li");
   if (level > 0 || hangingChars > 0) {
     el.style.paddingLeft = `${base + hangingChars * HANGING_CHAR_EM}em`;
     el.style.textIndent = hangingChars > 0 ? `-${hangingChars * HANGING_CHAR_EM}em` : "0";
@@ -1596,23 +1605,17 @@ function buildMarkdownBlocksFragment(blocks) {
   const frag = document.createDocumentFragment();
   let lastEl = null;
 
-  blocks.forEach((b, idx) => {
+  // 見出し・段落・引用・コード・表・画像・水平線の切れ目に、以前は空行ぶんの空段落（line-height
+  // まるまる1行分の余白）を自動で挟んでいたが、Enterで改行していない箇所まで間延びして見える
+  // という指摘を受けて廃止した（2026-09）。段落間の余白はCSS側の.para margin-bottomという
+  // 一定量に統一し、それ以上の余白が欲しい時はユーザーが実際に空行（Enter）を打つ、という
+  // 「見た目どおりの余白」にする。docToMarkdown側は元々この空段落の有無に頼らずブロックの型だけで
+  // 空行の要不要を組み立て直しており（空文字の段落は書き出し時に読み飛ばす）、この変更の影響を受けない。
+  blocks.forEach((b) => {
     const el = buildBlockEl(b);
     if (!el) return;
     frag.appendChild(el);
     lastEl = el;
-
-    // 見出し・段落・引用・コード・表・画像・水平線の切れ目には空行1つぶんの間隔を入れる
-    // （画面・印刷とも、既存の「空行＝空段落」という余白の作り方をそのまま踏襲する。
-    //   リストの項目同士・オペーク型ブロックの前後だけは自前の余白があるので入れない）。
-    const next = blocks[idx + 1];
-    if (next && !(b.type === "li" && next.type === "li") &&
-        !SELF_SPACING_TYPES.has(b.type) && !SELF_SPACING_TYPES.has(next.type)) {
-      const spacer = document.createElement("div");
-      spacer.className = "para";
-      spacer.innerHTML = "<br>";
-      frag.appendChild(spacer);
-    }
   });
 
   return { frag, lastEl };
