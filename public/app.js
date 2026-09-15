@@ -1343,7 +1343,7 @@ const THEMES = [
   { id: "flat", label: "フラット", desc: "カード区切りのSaaS系" },
   { id: "dark", label: "ダークUI", desc: "分析ツール風・集中読解" },
   { id: "wamodan", label: "和モダン", desc: "墨と紺、装飾ゼロ" },
-  { id: "gazette", label: "官報", desc: "太いゴシック・角ゼロ・朱色" },
+  { id: "site", label: "サイト", desc: "紺×朱、公開サイトの配色" },
   { id: "notebook", label: "ノート", desc: "丸みと暖色、個人メモの柔らかさ" },
 ];
 const DEFAULT_THEME = "minimal";

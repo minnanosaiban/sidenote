@@ -129,17 +129,17 @@ html[data-theme="wamodan"] {
   --font-mono: 'JetBrains Mono', monospace;
 }
 
-/* ⑥ 官報：太いゴシック・角ゼロ・濃いめの罫線で、法令・告示のような無彩色に近い組版。
-   2026-09-12追加。既存フォント（追加読み込みなし）の中で唯一「見出しも本文もゴシック」
-   の組み合わせで、フラット（同じくゴシック）とは角丸ゼロ・より暗いink・朱色のaccentで区別する。 */
-html[data-theme="gazette"] {
+/* ⑥ サイト：本サイト（minnanosaiban.github.io/hotline）のデザイントークン（紺のリンク色・
+   朱のアクセント・薄い青灰色の面）をそのまま流用し、公開サイトと地続きの見た目にする。
+   2026-09-16、官報テーマと差し替え。 */
+html[data-theme="site"] {
   --paper: #f4f5f7;
-  --ink: #1a1a1a;
-  --muted: #5c5c5c;
-  --accent: #a13d2b;
-  --rule: #b7b7b7;
-  --surface: #ffffff;
-  --radius: 0px;
+  --ink: #08131a;
+  --muted: #5a6472;
+  --accent: #e94709;
+  --rule: #aab0b8;
+  --surface: #eef1f5;
+  --radius: 4px;
   --font-head: 'Noto Sans JP', sans-serif;
   --font-body: 'Noto Sans JP', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -198,10 +198,10 @@ html[data-theme="wamodan"] body.print-active {
   --p-font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
   --p-accent: #223a5e;
 }
-html[data-theme="gazette"] body.print-active {
+html[data-theme="site"] body.print-active {
   --p-font-head: 'Noto Sans JP', sans-serif;
   --p-font-body: 'Noto Sans JP', sans-serif;
-  --p-accent: #a13d2b;
+  --p-accent: #e94709;
 }
 /* ノートのaccent（#b8654f）は白地では淡すぎるため、印刷時だけダーク寄りに調整する（ダークUIと同じ考え方）。 */
 html[data-theme="notebook"] body.print-active {
