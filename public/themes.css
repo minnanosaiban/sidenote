@@ -144,6 +144,16 @@ html[data-theme="site"] {
   --font-body: 'Noto Sans JP', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
+/* サイトも本サイト同様、見出しは太字で立てず、サイズと余白だけで区別する
+   （参考：hotline/docs/css/03-typeset.cssのh2＝font-weight:300、margin-top:8rem）。
+   H1（#）は文書の題として太字のまま残し、H2・H3（##・###）だけ通常の太さにする。 */
+html[data-theme="site"] .para-h2,
+html[data-theme="site"] .para-h3 {
+  font-weight: 400;
+}
+html[data-theme="site"] .para-h2 {
+  margin-top: 2.6em;
+}
 
 /* ⑦ ノート：丸み・暖色のインク・クリームがかった面で、個人メモ寄りのやわらかさを出す。
    2026-09-12追加。既存5案は総じて硬派（雑誌／公文書／SaaS／分析ツール／墨）なので、
