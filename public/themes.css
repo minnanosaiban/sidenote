@@ -58,10 +58,10 @@ html[data-theme="minimal"] {
 /* #doc外枠だけ、他テーマ・表罫線／区切り線（--rule）より薄い色にする（2026-09、外枠が
    濃く太く見えるという指摘を受けて追加。表罫線・区切り線は--ruleのまま変えないので影響しない）。 */
 html[data-theme="minimal"] #doc { border-color: #e5e5e5; }
-/* 公文書は行間を詰める（既定のline-height:2は短い1行の項目が並ぶとかえって間延びして見える。
-   実際の公文書・印刷（body.print-active）に近い1.7へ。2026-09、行間が空きすぎるという指摘を
-   受けて追加）。 */
-html[data-theme="minimal"] #doc { line-height: 1.7; }
+/* 公文書は行間を詰める（既定のline-height:2は短い1行の項目が並ぶとかえって間延びして見える）。
+   2026-09、行間が空きすぎるという指摘で1.7まで詰めたが、今度は詰まりすぎという指摘を受け、
+   折り返し2行以上の段落でも読みやすい1.85に戻した。 */
+html[data-theme="minimal"] #doc { line-height: 1.85; }
 /* 公文書は見出しを大きくせず、本文と同じ文字サイズのまま太字だけで区別するのが実際の仕様に近い
    （2026-09、イメージ画像に合わせて追加）。画面・印刷（PDF化）の両方に効かせる。 */
 html[data-theme="minimal"] .para-h1,
@@ -99,14 +99,16 @@ html[data-theme="flat"] {
   --font-mono: 'JetBrains Mono', monospace;
 }
 
-/* ④ ダークUI：分析ツール風・集中読解向け。 */
+/* ④ ダークUI：分析ツール風・集中読解向け。2026-09、地と文字が黒白に近く白黒コントラストが
+   きつすぎるという指摘を受け、GitHub/VSCode等の定番ダークUIに近い柔らかいチャコールへ調整
+   （paperを持ち上げ・inkを少し落として最大コントラストを避ける。muted/accentは変更なし）。 */
 html[data-theme="dark"] {
-  --paper: #14171c;
-  --ink: #e6e9ef;
+  --paper: #22262c;
+  --ink: #c9cdd6;
   --muted: #8b93a3;
   --accent: #e0a63f;
-  --rule: #2a2f38;
-  --surface: #1b1f27;
+  --rule: #383e48;
+  --surface: #2b3038;
   --radius: 8px;
   --font-head: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
   --font-body: 'Noto Sans JP', sans-serif;
