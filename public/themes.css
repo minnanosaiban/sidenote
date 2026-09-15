@@ -146,13 +146,22 @@ html[data-theme="site"] {
 }
 /* サイトも本サイト同様、見出しは太字で立てず、サイズと余白だけで区別する
    （参考：hotline/docs/css/03-typeset.cssのh2＝font-weight:300、margin-top:8rem）。
-   H1（#）は文書の題として太字のまま残し、H2・H3（##・###）だけ通常の太さにする。 */
-html[data-theme="site"] .para-h2,
+   H1（#）は文書の題として太字のまま残し、H2・H3（##・###）だけ通常の太さにする。
+   H2はさらに中央寄せ・少し大きめ・font-weight:300にし、文字下の余白は文字上の半分にする
+   （2026-09-16、節の区切りとして目立たせつつ、太字は使わない指定）。 */
 html[data-theme="site"] .para-h3 {
   font-weight: 400;
 }
 html[data-theme="site"] .para-h2 {
-  margin-top: 2.6em;
+  font-weight: 300;
+  font-size: 1.6em;
+  text-align: center;
+  margin-top: 3.2em;
+}
+/* margin-bottomだけ、style.css側の.para:not(.para-opaque):not(.para-li){margin-bottom:.6em}
+   （詳細度3）に勝つよう、同じ:not()の数で詳細度を合わせる。 */
+html[data-theme="site"] .para-h2:not(.para-opaque):not(.para-li) {
+  margin-bottom: 1.6em;
 }
 
 /* ⑦ ノート：丸み・暖色のインク・クリームがかった面で、個人メモ寄りのやわらかさを出す。
