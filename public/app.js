@@ -1290,13 +1290,14 @@ Object.keys(showLabelInputs).forEach((c) => {
 
 // 編集メニュー（書式ツールバー）は「表示/非表示」「固定/解除」をそれぞれ独立に選べる
 // （ツールバー右の「編集メニューを表示」「編集メニューを固定」チェックボックス。この端末の
-// 個人設定としてlocalStorageへ。既定は表示=true・固定=false）。.menu-stickyを付けるのは
+// 個人設定としてlocalStorageへ。既定は表示=false・固定=false。2026-09、既定を表示にしていたが
+// 初見では余計な情報量になるという判断でオフに変更）。.menu-stickyを付けるのは
 // 行を包む.toolbar-stickyラッパー側（toolbarMenu2WrapEl）、表示/非表示は中身の#formatToolbar
 // 自体（PDFモードでの強制非表示＝setMode()と両立させるため、applyEditMenuVisibility()に集約する）。
 const MENU2_STICKY_KEY = "sidenote-menu2-sticky-v1";
 const MENU2_VISIBLE_KEY = "sidenote-menu2-visible-v1";
 const menuStickyState = { menu2: false };
-const menuVisibleState = { menu2: true };
+const menuVisibleState = { menu2: false };
 try {
   const rawSticky = localStorage.getItem(MENU2_STICKY_KEY);
   if (rawSticky !== null) menuStickyState.menu2 = rawSticky === "1";
