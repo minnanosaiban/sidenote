@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Old+Mincho:wght@400;600&family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <!-- ?v=NUM はキャッシュ対策。style.css/themes.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=9">
 <link rel="stylesheet" href="themes.css?v=4">
 <!-- デザイン（テーマ）の初期反映を<body>のCSS読み込み前に済ませ、既定テーマへ一瞬だけ戻る
      ちらつき（FOUC）を防ぐ。app.js側の設定・保存内容と完全に同じキー・同じ既定値を使う。 -->
@@ -85,9 +85,13 @@ try {
           <button type="button" class="theme-swatch theme-swatch-customize" id="customizeThemeBtn">カスタマイズ</button>
         </div>
       </div>
-      <!-- 「開いているファイル：〇〇.md」＝今どのファイルを開いているかという、比較的静的な表示。
-           2026-09、ツールバー付近からデザイングリッドの下へ移設。 -->
+      <!-- 「ファイル：〇〇.md」＝今どのファイルを開いているかという、比較的静的な表示。
+           2026-09、ツールバー付近からデザイングリッドの下へ移設。
+           直下の#saveStatusは保存・書き込み・エラー等「たった今の結果」を伝える表示で、2026-09に
+           ここへ再度移設した（以前ここへ置いた際はCtrl+Sの結果が画面外で見えず「保存されていない
+           のでは」という指摘で.title-row側へ戻した経緯があるため、再発時は置き場所を要検討）。 -->
       <div id="openedFileNote" class="opened-file-note" hidden></div>
+      <div id="saveStatus"></div>
     </div>
 
     <div class="hero-right">
@@ -159,12 +163,20 @@ try {
     <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zM1.6 11.85H0v3.999h.791v-1.342h.803q.43 0 .732-.173.305-.175.463-.474a1.4 1.4 0 0 0 .161-.677q0-.375-.158-.677a1.2 1.2 0 0 0-.46-.477q-.3-.18-.732-.179m.545 1.333a.8.8 0 0 1-.085.38.57.57 0 0 1-.238.241.8.8 0 0 1-.375.082H.788V12.48h.66q.327 0 .512.181.185.183.185.522m1.217-1.333v3.999h1.46q.602 0 .998-.237a1.45 1.45 0 0 0 .595-.689q.196-.45.196-1.084 0-.63-.196-1.075a1.43 1.43 0 0 0-.589-.68q-.396-.234-1.005-.234zm.791.645h.563q.371 0 .609.152a.9.9 0 0 1 .354.454q.118.302.118.753a2.3 2.3 0 0 1-.068.592 1.1 1.1 0 0 1-.196.422.8.8 0 0 1-.334.252 1.3 1.3 0 0 1-.483.082h-.563zm3.743 1.763v1.591h-.79V11.85h2.548v.653H7.896v1.117h1.606v.638z"/></svg>
     .pdf
   </button>
-  <!-- 2行のメニュー（上段＝このファイル操作、下段＝書式ツールバー）は、それぞれ独立して画面上部に
-       固定できる（menu-sticky参照）。上段だけ固定・下段だけ固定、両方固定も両方非固定も選べる。
+  <!-- Word（.docx）への書き出し。vendor/docx（同梱ライブラリ、THIRD_PARTY_NOTICES.md参照）で
+       ブラウザ内で直接.docxを組み立てる。サイドノートはWordのコメント機能として実際の引用元テキストに
+       アンカーする（buildDocxDocument参照）。.mdと同じくPDFモードでは使えない。 -->
+  <button id="saveDocxBtn" type="button" class="btn-primary" data-tip="今の内容を.docx（Word）ファイルとして書き出す（サイドノートはWordのコメントになります。PDFモードでは使えません）">
+    <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5z"/></svg>
+    .docx
+  </button>
+  <!-- 上段（このファイル操作の行）は固定表示をやめ、常に本文と一緒にスクロールする
+       （固定機能はページ下の「トップに戻る」ボタンに置き換えた）。
+       下段＝書式ツールバー（編集メニュー）は表示/非表示・固定/解除をここで選べる（menu-sticky参照）。
        設定ボタンを廃止して空いた幅にボタン列と同じ行で収まる（margin-left:autoで右寄せ）。 -->
   <div class="menu-pin-toggles">
-    <label class="menu-pin-toggle"><input type="checkbox" id="menu1StickyToggle">上段メニュー固定</label>
-    <label class="menu-pin-toggle"><input type="checkbox" id="menu2StickyToggle">下段メニュー固定</label>
+    <label class="menu-pin-toggle"><input type="checkbox" id="menu2VisibleToggle" checked>編集メニューを表示</label>
+    <label class="menu-pin-toggle"><input type="checkbox" id="menu2StickyToggle">編集メニューを固定</label>
   </div>
 </div>
 </div>
@@ -202,6 +214,15 @@ try {
     </span>
   </span>
   <span class="sep"></span>
+  <span class="fmt-unit">
+    <span class="fmt-group-label">文字サイズ</span>
+    <span class="fmt-group">
+      <button type="button" class="fmt-btn fmt-btn-2ch" id="fontSizeDecBtn" title="文字サイズを小さく">−</button>
+      <span class="fmt-label" id="fontSizeLabel">既定</span>
+      <button type="button" class="fmt-btn fmt-btn-2ch" id="fontSizeIncBtn" title="文字サイズを大きく">＋</button>
+    </span>
+  </span>
+  <span class="sep"></span>
   <span class="fmt-group">
     <button type="button" class="fmt-btn fmt-btn-bold" id="boldBtn" title="太字（Ctrl+B）">B</button>
     <button type="button" class="fmt-btn fmt-btn-underline" id="underlineBtn" title="下線（Ctrl+U）">U</button>
@@ -217,6 +238,15 @@ try {
       <button type="button" class="fmt-btn fmt-btn-2ch" data-style="h3" title="見出し3">H3</button>
     </span>
   </span>
+  <span class="sep"></span>
+  <span class="fmt-group">
+    <!-- 箇条書きの追加・解除（トグル）。マーカー（• ）は本文編集不可の固定スパンとして先頭に差し込む
+         （Markdown取り込みで作る.para-liと同じ構造・見た目。app.js toggleBulletList参照）。 -->
+    <button type="button" class="fmt-btn" id="bulletListBtn" title="箇条書きにする（もう一度押すと解除）">箇条書き</button>
+    <!-- 表の挿入。現在の段落の直後に既定サイズ（見出し1行＋本文2行×3列）の表を挿入する。
+         セルはそのまま書き換えられるが、行・列の追加/削除UIは無い（app.js insertTableBlock参照）。 -->
+    <button type="button" class="fmt-btn" id="insertTableBtn" title="表を挿入（見出し1行＋本文2行×3列。セルはそのまま書き換えできます）">表を挿入</button>
+  </span>
 </div>
 </div>
 
@@ -224,12 +254,6 @@ try {
   <div class="title-label">ファイル名</div>
   <input id="titleInput" type="text" placeholder="例：資料A、〇〇案件メモ　※「sidenote-資料A-20260819-2306.json」と保存されます">
 </div>
-<!-- 保存・読み込み・エラー等の状態表示。ヒーロー側の#openedFileNote（今開いているファイル名、
-   比較的静的）とは別物：こちらは保存・書き出し・エラー等の「たった今の結果」を伝えるための、
-   都度更新される表示なので、実際に操作しているこの近くに置く（2026-09、ヒーロー側へ一緒に
-   移設したところCtrl+Sの保存結果が画面外で見えず「保存されていないのでは」という指摘を受けて
-   ここへ戻した）。 -->
-<div id="saveStatus"></div>
 
 <!-- 「項番設定」：見出し（H1〜H3）の見た目と、項番の型（第１／１／⑴／ア）ごとのインデント・ぶら下げを
      設定するパネル。どちらもこの文書の.jsonに保存される（serializeProject/applyProjectData参照）。
@@ -379,7 +403,15 @@ try {
      色だけを変え、サイズ・段組み幅はテーマ共通の固定値なので、どのテーマでも成り立つ表記。 -->
 <footer class="app-footer">画面表示は本文15px・1行37字／PDF書き出しはサイドバーがあれば本文10.5pt・1行31字、無ければ本文12pt・1行37字が目安です（全角1文字≒1em換算）。</footer>
 
+<!-- 上段メニューの固定機能を廃止した代わりに、ある程度スクロールした後だけ現れる「トップに戻る」ボタン。
+     画面のどの位置からでも一段操作（新しい作業／開く／保存）へ戻れるようにする（app.js参照）。 -->
+<button type="button" id="backToTopBtn" class="back-to-top" title="トップへ戻る" hidden>
+  <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5"/></svg>
+</button>
+
 <script src="md-parser.js?v=1"></script>
-<script src="app.js?v=4"></script>
+<!-- .docx書き出し用（同梱ライブラリ。THIRD_PARTY_NOTICES.md参照）。app.js内ではグローバルdocxとして参照する。 -->
+<script src="vendor/docx/docx.umd.js"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>

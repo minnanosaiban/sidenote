@@ -106,9 +106,6 @@ body {
 .btn-primary { background: var(--tx-text); color: #fff; border: 1px solid var(--tx-text); }
 .btn-primary:hover { background: #262626; }
 .btn-outline:disabled, .btn-outline[disabled] { background: #f5f6f8; color: #b7bac2; border-color: #eee; cursor: not-allowed; }
-/* ツールバーのボタンはラベルの長さに関わらず幅を揃える（旧デザインの踏襲）。
-   幅は最長ラベル「続きから再開」に合わせる。6個×118px+gap8pxで900px幅に収まる。 */
-.toolbar .btn-outline, .toolbar .btn-primary, .toolbar .filebtn2 { width: 118px; }
 @media (max-width: 860px) {
   .hero-inner { grid-template-columns: 1fr; gap: 32px; }
   .hero-title { font-size: 30px; }
@@ -123,32 +120,28 @@ body {
   .theme-grid { grid-template-columns: repeat(2, 1fr); max-width: none; }
 }
 
-/* 共通の118pxだと900px幅に収まらず折り返すため、最長ラベル「続きから再開」が入る範囲で
-   少しだけ詰める（新しい作業/続きから再開/開く/.json/.md/.pdfの6個＋右端の固定チェックボックス
-   2つが900px内に収まる幅。設定・デザインは2026-09にこの行から移設・廃止済み）。 */
-.toolbar .btn-outline, .toolbar .btn-primary, .toolbar .filebtn2 { width: 104px; }
+/* 上段（ファイル操作）のボタンは、文字サイズ・高さを下段の編集メニュー（.fmt-btn）と揃える
+   （2026-09、上下でサイズ感が違うという指摘を受けて統一）。ラベルの長さに関わらず幅も揃え、
+   最長ラベル「続きから再開」に合わせる。文字を13pxへ縮めた分、幅も詰めて7個（新しい作業/
+   続きから再開/開く/.json/.md/.pdf/.docx）＋右端の固定チェックボックスが900px内に収まるようにする。 */
+.toolbar .btn-outline, .toolbar .btn-primary, .toolbar .filebtn2 {
+  width: 84px; font-size: 13px; height: 30px; padding: 0 8px;
+}
 
-/* 文章が長くなるとボタンに手が届かなくなるため、上段（ファイル操作）・下段（書式）は
-   それぞれ独立に画面上部へ固定できる（ツールバー右の「上段メニュー固定」「下段メニュー固定」
-   チェックボックス、app.js参照）。
-   position:stickyは「自分の親要素」の高さの範囲でしか固定され続けない。上段・下段の2行を
-   1つの短い.toolbar-stickyにまとめてそこへposition:stickyを付けると、そのすぐ下（親の外）まで
-   スクロールした瞬間に固定が解けてしまう（2026-09に発生させた不具合）。そのため上段・下段を
-   別々の.toolbar-sticky（ともにbody直下＝ページ全体ぶんの高さがある親）に分け、.menu-stickyが
-   付いた側だけposition:stickyにする。下段が固定の時は上段の高さぶんだけ下にずらして重ならない
-   ようにする（上段が非固定の場合はその分の余白が浮くが、両方固定/両方非固定が主な使い方なので
-   許容する）。 */
+/* 上段（ファイル操作）は常に本文と一緒にスクロールする（固定機能は廃止し、代わりに
+   ページ下の「トップに戻る」ボタン#backToTopBtnで一段操作へ戻れるようにした）。
+   下段＝編集メニュー（書式ツールバー）だけ、画面上部へ固定できる（「編集メニューを固定」
+   チェックボックス、app.js参照）。position:stickyは「自分の親要素」の高さの範囲でしか
+   固定され続けないため、編集メニューの.toolbar-stickyもbody直下＝ページ全体ぶんの高さがある
+   親のままにしておく。 */
 .toolbar-sticky {
   max-width: 900px; margin: 0 auto 16px; padding-top: 48px;
 }
-/* 下段側の.toolbar-stickyは上段の直後に隙間なく続けたいので、上段用のpadding-top(48px)を
-   打ち消す（本来はヒーロー直後の1回だけでよい余白のため）。 */
-.toolbar-sticky--menu2 { padding-top: 0; margin-top: -16px; }
+/* 下段側の.toolbar-stickyは上段の直後に続けたいので、上段用のpadding-top(48px)を打ち消しつつ、
+   2行がくっついて見えないよう8pxだけ隙間を残す（本来48pxぶん要る余白はヒーロー直後の1回だけでよい）。 */
+.toolbar-sticky--menu2 { padding-top: 0; margin-top: -8px; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; align-items: center; background: #f4f5f7; }
-#toolbarMenu1Wrap.menu-sticky { position: sticky; top: 8px; z-index: 20; background: #f4f5f7; }
-/* 96px = 上段の固定オフセット8px + 実際の高さ88px（padding-top:48pxを含む）。この値がズレると
-   下段が上段の裏に隠れて見えなくなる（2026-09に実際に発生した不具合）。 */
-#toolbarMenu2Wrap.menu-sticky { position: sticky; top: 96px; z-index: 19; background: #f4f5f7; }
+#toolbarMenu2Wrap.menu-sticky { position: sticky; top: 8px; z-index: 19; background: #f4f5f7; }
 /* ボタン列の右端に置く（設定ボタンを廃止した分の余白に収まる）。margin-left:autoで押し出すため、
    折り返した場合はそのラインの右端に来る。 */
 .menu-pin-toggles { display: flex; gap: 8px; margin-left: auto; }
@@ -157,6 +150,22 @@ body {
   white-space: nowrap;
 }
 .menu-pin-toggle input { flex: none; }
+
+/* 上段メニュー固定の代わりに設けた「トップに戻る」ボタン（app.jsが一定量スクロールした時だけ
+   [hidden]を外す）。どのテーマ・スクロール位置でも押せるよう、テーマの配色に関わらず固定の
+   濃色にする（テーマごとのボタン配色と連動させると、テーマによっては本文に紛れて見えにくくなるため）。 */
+.back-to-top {
+  position: fixed; right: 24px; bottom: 24px; z-index: 30;
+  width: 44px; height: 44px; padding: 0; border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #1c1d21; color: #fff; cursor: pointer; box-shadow: 0 2px 10px rgba(0, 0, 0, .28);
+}
+/* [hidden]属性とdisplay:flexが同じ詳細度で衝突し、flexが後勝ちして隠れなくなる罠があるので
+   明示的に潰す（.toolbar-format[hidden]と同じ理由）。 */
+.back-to-top[hidden] { display: none; }
+.back-to-top:hover { background: #000; }
+.back-to-top .icon { width: 1.3em; height: 1.3em; }
+@media (max-width: 600px) { .back-to-top { right: 16px; bottom: 16px; } }
 
 /* ツールバーのボタンはtitle属性（ブラウザ標準の吹き出し＝枠線と影で囲まれ、見た目を制御できない）
    をやめ、data-tip属性＋この自前ツールチップに置き換える。枠線も影も付けず、
@@ -183,7 +192,10 @@ body {
 }
 .title-row input[type="text"]:focus { outline: none; border-color: var(--tx-text); box-shadow: 0 0 0 3px rgba(10,10,10,.08); }
 .opened-file-note { font-size: 12.5px; color: var(--tx-muted-2); margin-top: 6px; }
-#saveStatus { max-width: 900px; margin: 8px auto 0; font-size: 12.5px; color: #666; min-height: 1.4em; }
+/* 2026-09、ヒーロー側の#openedFileNote（今開いているファイル名）の直下へ移設。
+   .hero-left内の1要素として自然に積むだけでよいので、旧位置（.title-row近く・900px中央寄せの
+   独立行）用だったmax-width/auto中央寄せは外す。 */
+#saveStatus { margin-top: 4px; font-size: 12.5px; color: #666; min-height: 1.4em; }
 
 .app-footer { max-width: 900px; margin: 48px auto 0; text-align: left; font-size: 11px; color: var(--tx-muted-2); }
 
@@ -225,9 +237,9 @@ body {
 }
 
 
-/* ファイル名→本文の間の余白は#saveStatus（margin-top 8px + min-height 1.4em）が担っている
-   （#saveStatusを一時的にヒーロー側へ移していた間だけ、ここにもmargin-topが必要だった）。 */
-.doc-wrap { display: flex; gap: 28px; max-width: 900px; margin: 0 auto; }
+/* ファイル名→本文の間の余白：2026-09に#saveStatusをヒーロー側へ移したので、その分をここの
+   margin-topで肩代わりする（.title-rowの上余白24pxと揃える）。 */
+.doc-wrap { display: flex; gap: 28px; max-width: 900px; margin: 24px auto 0; }
 .doc-left { flex: 1 1 auto; min-width: 0; position: relative; }   /* 段落ホバー時のアイコン(.para-hover)の位置基準 */
 .doc-label { font-size: 12.5px; color: #8a8f98; margin: 0 0 6px; }
 .doc-right-col { width: 260px; flex: none; }   /* 区切りは罫線ではなくgap（余白）だけに任せる */
@@ -474,7 +486,8 @@ body {
 body.print-active { padding: 0; margin: 0; background: #fff; }
 body.print-active .hero, body.print-active .toolbar-sticky, body.print-active .title-row,
 body.print-active #saveStatus, body.print-active .doc-wrap, body.print-active .note-popover,
-body.print-active .dropdown-panel, body.print-active .app-footer { display: none !important; }
+body.print-active .dropdown-panel, body.print-active .app-footer,
+body.print-active .back-to-top { display: none !important; }
 body.print-active #printDoc {
   display: block !important;
   font-family: var(--p-font-body, "Source Sans Pro", system-ui, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif);

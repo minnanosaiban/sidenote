@@ -19,6 +19,7 @@ const openedFileNoteEl = document.getElementById("openedFileNote");
 const saveBtn = document.getElementById("saveBtn");
 const saveMdBtn = document.getElementById("saveMdBtn");
 const savePdfBtn = document.getElementById("savePdfBtn");
+const saveDocxBtn = document.getElementById("saveDocxBtn");
 const printDocEl = document.getElementById("printDoc");
 const loadInput = document.getElementById("loadInput");
 const saveStatusEl = document.getElementById("saveStatus");
@@ -33,15 +34,15 @@ const showLabelInputs = {
   red: document.getElementById("showLabelRed"),
 };
 // メニュー1（ファイル操作の.toolbar）・メニュー2（書式ツールバー.toolbar-format）を、それぞれ独立に
-// 画面上部へ固定できる（ツールバー右の「上段メニュー固定」「下段メニュー固定」。2026-09、設定
-// パネルの「メニューを画面上部に固定する」を1つに統合していたのを分割）。position:stickyを付ける
-// のは行そのもの（#toolbarMenu1/#formatToolbar）ではなく、それぞれを包む.toolbar-sticky
-// ラッパー（#toolbarMenu1Wrap/#toolbarMenu2Wrap）。sticky要素は「自分の親」の高さの範囲でしか
-// 固定され続けないため、ラッパーをbody直下（＝ページ全体ぶんの高さがある親）にする必要がある。
-const toolbarMenu1WrapEl = document.getElementById("toolbarMenu1Wrap");
+// 編集メニュー（書式ツールバー）だけ画面上部へ固定できる（ツールバー右の「編集メニューを固定」。
+// 上段＝ファイル操作の行は2026-09に固定機能を廃止し、代わりに#backToTopBtnを設けた）。
+// position:stickyを付けるのは行そのもの（#formatToolbar）ではなく、それを包む.toolbar-sticky
+// ラッパー（#toolbarMenu2Wrap）。sticky要素は「自分の親」の高さの範囲でしか固定され続けない
+// ため、ラッパーをbody直下（＝ページ全体ぶんの高さがある親）にする必要がある。
 const toolbarMenu2WrapEl = document.getElementById("toolbarMenu2Wrap");
-const menu1StickyToggle = document.getElementById("menu1StickyToggle");
+const menu2VisibleToggle = document.getElementById("menu2VisibleToggle");
 const menu2StickyToggle = document.getElementById("menu2StickyToggle");
+const backToTopBtn = document.getElementById("backToTopBtn");
 // 「デザイン」はドロップダウンではなく、ヒーロー内に常時表示するグリッド（2026-09、当初の
 // アプリイメージに合わせて変更。ボタン自体はテーマを直接適用し、開閉は不要）。
 const themeGrid = document.getElementById("themeGrid");
@@ -54,10 +55,15 @@ const indentIncBtn = document.getElementById("indentIncBtn");
 const hangingDecBtn = document.getElementById("hangingDecBtn");
 const hangingIncBtn = document.getElementById("hangingIncBtn");
 const hangingLabel = document.getElementById("hangingLabel");
+const fontSizeDecBtn = document.getElementById("fontSizeDecBtn");
+const fontSizeIncBtn = document.getElementById("fontSizeIncBtn");
+const fontSizeLabel = document.getElementById("fontSizeLabel");
 const boldBtn = document.getElementById("boldBtn");
 const underlineBtn = document.getElementById("underlineBtn");
 const kentenBtn = document.getElementById("kentenBtn");
 const styleBtns = Array.from(formatToolbarEl.querySelectorAll("[data-style]"));
+const bulletListBtn = document.getElementById("bulletListBtn");
+const insertTableBtn = document.getElementById("insertTableBtn");
 const docStackEl = document.getElementById("docStack");
 const docLabelEl = document.getElementById("docLabel");
 const pdfViewerEl = document.getElementById("pdfViewer");
@@ -106,6 +112,13 @@ const INDENT_LEVEL_MAX = 6;
 // ぶら下げは1〜3文字幅から選べる（0＝なし）。1文字＝1em（本文の37字組版と同じ「全角1文字≒1em」の前提）。
 const HANGING_CHAR_EM = 1;
 const HANGING_MAX = 3;
+// 文字サイズ（書式ツールバーの「文字サイズ」）は段落ごとにpt単位で個別指定できる。
+// updateFormatToolbarState()がページ初期化時（下のresetDoc()直後）に即座に呼ばれるため、
+// この定数は他の定数と同じくファイル冒頭で必ず定義しておく（2026-09、下の方で定義していたところ
+// TDZ（初期化前アクセス）で起動時に例外が出て以後の初期化が全部止まる不具合を起こした教訓）。
+const FONT_SIZE_MIN_PT = 6;
+const FONT_SIZE_MAX_PT = 72;
+const FONT_SIZE_DEFAULT_PT = 12;   // 「既定」から＋／−を押した時の出発点（本文のPDF書き出し既定に合わせる）
 // スタイルは「本文」＋見出し3段階（H1〜H3）の離散的な4択。data-styleが無い＝本文（フォントサイズ・
 // 太さともに素のまま）。各見出しの実際の見た目（文字サイズpt・太字）は「項番設定」パネルで
 // 文書ごとに変えられる設定（paraStyleSettings、下のDEFAULT_PARA_STYLE_SETTINGSが初期値）にした。
@@ -171,13 +184,13 @@ let openedMdFilename = null;
 // ドラッグ＆ドロップで掴めなかった場合はnullのままで、従来通りダウンロードでの保存にフォールバックする）。
 let openedMdFileHandle = null;
 
-// 上の.title-row内に「開いているファイル：〇〇.md」と実ファイル名を表示する（openedMdFilenameが
+// ヒーロー側に「ファイル：〇〇.md」と実ファイル名を表示する（openedMdFilenameが
 // 変わる4箇所――.mdを開く／.jsonを開く／自動保存から復元／新しい作業――すべてから呼ぶ）。
 // タイトル欄（titleInput）はMarkdown見出し(#)や.json保存名のもとになる別の値なので、
 // 実際にCtrl+Sで上書きされるファイルがどれかが分かるよう、あえて別の場所に出す。
 function updateOpenedFileNote() {
   if (openedMdFilename) {
-    openedFileNoteEl.textContent = `開いているファイル：${openedMdFilename}`;
+    openedFileNoteEl.textContent = `ファイル：${openedMdFilename}`;
     openedFileNoteEl.hidden = false;
   } else {
     openedFileNoteEl.hidden = true;
@@ -437,7 +450,9 @@ saveBtn.onclick = () => {
 // （2026-09-13、本文へのCtrl+B対応で追加。無いと.md書き出しで太字が消える）。
 const MD_INLINE_WRAP = { STRONG: "**", B: "**", EM: "*", DEL: "~~", CODE: "`" };
 function inlineNodeToMarkdown(node) {
-  if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+  // ゼロ幅スペース(U+200B)は箇条書きマーカー直後の入力安定化のための内部的な目印（insertBulletMarker
+  // 参照）で、書き出しには含めない。
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent.replace(/​/g, "");
   if (node.nodeType !== Node.ELEMENT_NODE) return "";
   if (node.tagName === "BR") return "\n";
   if (node.classList && node.classList.contains("note-anchor")) {
@@ -555,7 +570,7 @@ async function saveMarkdown() {
   if (openedMdFileHandle) {
     try {
       await writeTextToFileHandle(openedMdFileHandle, text);
-      setStatus(`上書き保存しました：${filename}`);
+      setStatus(`上書き保存：${filename}`);
       return;
     } catch (err) {
       console.error(err);
@@ -579,6 +594,248 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// ---- .docxとして書き出す（本文DOM → Wordファイルへの変換） ----
+// .mdと同じくDOMを1段落＝1ブロックとして歩くが、こちらはMarkdown文字列ではなくvendor/docx
+// （THIRD_PARTY_NOTICES.md参照。<script>で先読みし、グローバルwindow.docxとして触れる）の
+// Paragraph/TextRunを組み立てて実際に.docxのバイト列を生成する。
+// .mdでは表現できなかった2点をここでは実物に近い形で再現する：
+//   ・傍点 → Wordの圏点（w:em、TextRunのemphasisMark）
+//   ・サイドノート（.note-anchor） → Wordのコメント機能（引用範囲にCommentRangeStart/Endでアンカーし、
+//     複数返信は1つのコメント本文にまとめる）
+// 一方、画像・表に付いたノート（img-note-anchor/tbl-note-anchor）はWordコメントのアンカー先が
+// 図表そのものになり実装コストに見合わないため、簡略化して本文中に「［サイドノート］」の段落として
+// 差し込むだけにする（sideNoteFallbackParagraph参照）。
+const DOCX_INDENT_TWIP_PER_LEVEL = 240;   // 全角1文字≒12pt≒240twip（本文12pt想定。INDENT_STEP_EMのdocx版）
+const DOCX_MONO_FONT = "JetBrains Mono";
+const DOCX_MAX_IMAGE_PX = 550;   // A4・1インチ余白の版面幅(約560pt)に収まる程度の上限
+
+function docxStripMarkup(raw) {
+  return String(raw || "").replace(/\*\*(.+?)\*\*/g, "$1").replace(/<u>(.+?)<\/u>/g, "$1");
+}
+
+function docxImageType(dataUrl) {
+  const m = /^data:image\/([a-zA-Z0-9.+-]+);base64,/.exec(dataUrl || "");
+  if (!m) return null;
+  const sub = m[1].toLowerCase() === "jpeg" ? "jpg" : m[1].toLowerCase();
+  return ["png", "jpg", "gif", "bmp"].includes(sub) ? sub : "png";   // svg等の非対応形式はpngとして扱う（既知の簡略化）
+}
+
+// paraEl.dataset.style（H1〜H3）とMarkdown取り込み由来の.para-hNクラス（h1〜h6）の両方を見るのは
+// blockParaToMarkdownのheadingLevel判定と同じ理由（app.js内、docToMarkdown参照）。
+function docxHeadingLevel(paraEl, HeadingLevel) {
+  const styleLevel = /^h([1-3])$/.exec(paraEl.dataset.style || "");
+  const hClassMatch = paraEl.className.match(/\bpara-h([1-6])\b/);
+  const n = styleLevel ? Number(styleLevel[1]) : (hClassMatch ? Number(hClassMatch[1]) : null);
+  return n ? HeadingLevel["HEADING_" + n] : null;
+}
+
+async function buildDocxBlob() {
+  if (!window.docx) throw new Error("docxライブラリが読み込めていません。ページを再読み込みしてください。");
+  const {
+    Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, WidthType,
+    EmphasisMarkType, ImageRun, Table, TableRow, TableCell, ExternalHyperlink,
+    CommentRangeStart, CommentRangeEnd, CommentReference,
+  } = window.docx;
+
+  function makeTextRun(text, marks) {
+    return new TextRun({
+      text,
+      bold: !!marks.bold,
+      italics: !!marks.italics,
+      strike: !!marks.strike,
+      underline: marks.underline ? {} : undefined,
+      emphasisMark: marks.kenten ? { type: EmphasisMarkType.DOT } : undefined,
+      font: marks.mono ? DOCX_MONO_FONT : undefined,
+      style: marks.link ? "Hyperlink" : undefined,
+      size: marks.sizePt ? marks.sizePt * 2 : undefined,   // docxのsizeは half-point 単位
+    });
+  }
+
+  // #doc内の1インライン要素をdocxのTextRun/ExternalHyperlink等へ再帰変換し、outへ積む。
+  // .note-anchorに実際の返信（notesByAnchor）が付いている場合だけWordコメントとしてアンカーし、
+  // 内容を持たない（未使用）アンカーはただの引用文として素通しする。
+  function collectInlineRuns(node, marks, out, comments) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      // ゼロ幅スペース(U+200B)は箇条書きマーカー直後の入力安定化のための内部的な目印
+      // （insertBulletMarker参照）で、書き出しには含めない。
+      const text = node.textContent.replace(/​/g, "");
+      if (text) out.push(makeTextRun(text, marks));
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    if (node.tagName === "BR") { out.push(new TextRun({ text: "", break: 1 })); return; }
+    if (node.classList.contains("li-marker")) return;   // 行頭バッジは本文ではないので除外（.md書き出しと同じ）
+    if (node.classList.contains("note-anchor")) {
+      const notes = notesByAnchor.get(node.dataset.anchorId) || [];
+      const quoteSpan = node.querySelector("span");
+      const walkQuote = (target) => { if (quoteSpan) Array.from(quoteSpan.childNodes).forEach((c) => collectInlineRuns(c, marks, target, comments)); };
+      if (notes.length) {
+        const commentId = comments.length;
+        out.push(new CommentRangeStart(commentId));
+        walkQuote(out);
+        out.push(new CommentRangeEnd(commentId));
+        out.push(new TextRun({ children: [new CommentReference(commentId)] }));
+        comments.push(notes);
+      } else {
+        walkQuote(out);
+      }
+      return;
+    }
+    if (node.classList.contains("kenten")) {
+      Array.from(node.childNodes).forEach((c) => collectInlineRuns(c, { ...marks, kenten: true }, out, comments));
+      return;
+    }
+    if (node.tagName === "A") {
+      const href = node.getAttribute("href") || "";
+      const innerRuns = [];
+      Array.from(node.childNodes).forEach((c) => collectInlineRuns(c, { ...marks, link: true }, innerRuns, comments));
+      out.push(new ExternalHyperlink({ link: href, children: innerRuns }));
+      return;
+    }
+    const next = { ...marks };
+    if (node.tagName === "STRONG" || node.tagName === "B") next.bold = true;
+    if (node.tagName === "U") next.underline = true;
+    if (node.tagName === "EM" || node.tagName === "I") next.italics = true;
+    if (node.tagName === "DEL") next.strike = true;
+    if (node.tagName === "CODE") next.mono = true;
+    Array.from(node.childNodes).forEach((c) => collectInlineRuns(c, next, out, comments));
+  }
+
+  // 画像・表に付いたノート（本文アンカーと違いWordコメントとして図表そのものに刺すのは実装コストに
+  // 見合わないため簡略化）を、本文中の小さな段落として差し込む。
+  function sideNoteFallbackParagraph(notes) {
+    const text = notes.map((n) => `${colorLabel(n.color)}：${docxStripMarkup(n.text)}`).join("／");
+    return new Paragraph({ children: [new TextRun({ text: `［サイドノート］${text}`, italics: true, color: "666666", size: 20 })] });
+  }
+
+  function imageBlockToDocx(paraEl, comments) {
+    const out = [];
+    const img = paraEl.querySelector(".para-image-img");
+    const type = img && docxImageType(img.src);
+    if (img && type) {
+      let w = img.naturalWidth || 300, h = img.naturalHeight || 200;
+      if (w > DOCX_MAX_IMAGE_PX) { h = Math.round((h * DOCX_MAX_IMAGE_PX) / w); w = DOCX_MAX_IMAGE_PX; }
+      out.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new ImageRun({ type, data: img.src, transformation: { width: w, height: h } })],
+      }));
+    }
+    const notes = notesByAnchor.get(paraEl.dataset.paraId) || [];
+    if (notes.length) out.push(sideNoteFallbackParagraph(notes));
+    return out;
+  }
+
+  function tableBlockToDocx(paraEl, comments) {
+    const out = [];
+    const tableEl = paraEl.querySelector(".para-table-el");
+    if (tableEl) {
+      const rows = Array.from(tableEl.rows).map((tr) => new TableRow({
+        children: Array.from(tr.cells).map((cell) => {
+          const runs = [];
+          Array.from(cell.childNodes).forEach((c) => collectInlineRuns(c, {}, runs, comments));
+          if (!runs.length) runs.push(new TextRun(""));
+          return new TableCell({ children: [new Paragraph({ children: runs })] });
+        }),
+      }));
+      // 列幅（columnWidths）を明示しないとgridColが既定の小さい値のまま残り、width指定(100%)と
+      // 食い違って表示が崩れることがあるビューアがあるため、A4・1インチ余白の版面幅を均等割りする。
+      const colCount = tableEl.rows[0] ? tableEl.rows[0].cells.length : 0;
+      const columnWidths = colCount ? Array(colCount).fill(Math.floor(9026 / colCount)) : undefined;
+      if (rows.length) out.push(new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE }, columnWidths }));
+    }
+    const notes = notesByAnchor.get(paraEl.dataset.paraId) || [];
+    if (notes.length) out.push(sideNoteFallbackParagraph(notes));
+    return out;
+  }
+
+  function blockToDocx(paraEl, comments) {
+    if (paraEl.classList.contains("para-image")) return imageBlockToDocx(paraEl, comments);
+    if (paraEl.classList.contains("para-table")) return tableBlockToDocx(paraEl, comments);
+    if (paraEl.classList.contains("para-hr")) {
+      return [new Paragraph({ border: { bottom: { color: "999999", space: 4, style: BorderStyle.SINGLE, size: 6 } } })];
+    }
+
+    const heading = docxHeadingLevel(paraEl, HeadingLevel);
+    const styleLook = heading ? paraStyleSettings[paraEl.dataset.style] : null;
+    const baseMarks = {};
+    if (styleLook && styleLook.bold) baseMarks.bold = true;
+    // 書式ツールバーの「文字サイズ」で個別指定した段落は、見出しの既定サイズより優先する（applyParaStylesと同じ）。
+    if (paraEl.dataset.fontSizePt) baseMarks.sizePt = Number(paraEl.dataset.fontSizePt);
+    else if (styleLook && styleLook.fontSizePt) baseMarks.sizePt = styleLook.fontSizePt;
+    if (paraEl.classList.contains("para-code")) baseMarks.mono = true;
+
+    const runs = [];
+    Array.from(paraEl.childNodes).forEach((c) => collectInlineRuns(c, baseMarks, runs, comments));
+    if (!runs.length) runs.push(new TextRun(""));
+
+    const alignment = paraEl.dataset.align === "center" ? AlignmentType.CENTER
+      : paraEl.dataset.align === "right" ? AlignmentType.RIGHT : undefined;
+
+    if (paraEl.classList.contains("para-li")) {
+      const level = Number(paraEl.dataset.indentLevel || 0);
+      const markerText = (paraEl.querySelector(".li-marker")?.textContent || "").trim();
+      return [new Paragraph({
+        alignment,
+        indent: { left: (level + 1) * DOCX_INDENT_TWIP_PER_LEVEL, hanging: DOCX_INDENT_TWIP_PER_LEVEL },
+        children: [new TextRun(markerText ? `${markerText} ` : ""), ...runs],
+      })];
+    }
+    if (paraEl.classList.contains("para-quote")) {
+      return [new Paragraph({ alignment, indent: { left: DOCX_INDENT_TWIP_PER_LEVEL }, children: runs })];
+    }
+
+    const indentLevel = Number(paraEl.dataset.indentLevel || 0);
+    const hangingChars = Number(paraEl.dataset.hanging || 0);
+    const indent = (indentLevel || hangingChars) ? {
+      left: indentLevel * DOCX_INDENT_TWIP_PER_LEVEL + hangingChars * DOCX_INDENT_TWIP_PER_LEVEL,
+      hanging: hangingChars ? hangingChars * DOCX_INDENT_TWIP_PER_LEVEL : undefined,
+    } : undefined;
+    return [new Paragraph({ heading: heading || undefined, alignment, indent, children: runs })];
+  }
+
+  const comments = [];   // [[{id,text,color}, ...], ...]（インデックス＝Wordコメントid）
+  const paragraphs = [];
+  const title = projectTitle();
+  if (title) paragraphs.push(new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(title)] }));
+  Array.from(doc.children)
+    .filter((el) => el.classList && el.classList.contains("para"))
+    .forEach((paraEl) => { blockToDocx(paraEl, comments).forEach((b) => paragraphs.push(b)); });
+
+  const docxDoc = new Document({
+    styles: { default: { document: { run: { font: "游明朝", size: 24 } } } },   // 本文12pt・游明朝を既定に（テーマごとのフォントは反映しない簡略化）
+    comments: {
+      children: comments.map((notes, id) => ({
+        id,
+        author: notes.length === 1 ? colorLabel(notes[0].color) : "サイドノート",
+        initials: "SN",
+        date: new Date(),
+        children: notes.map((n) => new Paragraph({
+          children: [
+            new TextRun({ text: `${colorLabel(n.color)}：`, bold: true }),
+            new TextRun({ text: docxStripMarkup(n.text) }),
+          ],
+        })),
+      })),
+    },
+    sections: [{ children: paragraphs }],
+  });
+  return Packer.toBlob(docxDoc);
+}
+
+saveDocxBtn.onclick = async () => {
+  try {
+    setStatus("Wordファイルを作成中…");
+    const blob = await buildDocxBlob();
+    const namePart = projectTitle() ? `-${sanitizeFilename(projectTitle())}` : "";
+    const filename = `sidenote${namePart}-${timestamp()}.docx`;
+    downloadBlob(blob, filename);
+    setStatus(`書き出しました：${filename}`);
+  } catch (err) {
+    console.error(err);
+    setStatus("Wordファイルの作成に失敗しました。");
+  }
+};
+
 // ---- A4 PDF化（ブラウザの印刷機能を使う）----
 // 独自にPDFを組み立てるのではなく、印刷用CSSを当てた#printDocをブラウザの印刷（→PDFに保存）に渡す方式。
 // サイドノートは段落を分割せず、注釈の直後にインラインで埋め込んだ上でfloat:right＋マイナスマージンにより
@@ -590,7 +847,9 @@ document.addEventListener("keydown", (e) => {
 // （2026-09-13、本文へのCtrl+B対応で追加。無いとPDF書き出しで太字が消える）。
 const PRINT_INLINE_TAG_MAP = { STRONG: "strong", B: "strong", U: "u", EM: "em", CODE: "code", DEL: "del" };
 function buildPrintNode(node) {
-  if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent);
+  // ゼロ幅スペース(U+200B)は箇条書きマーカー直後の入力安定化のための内部的な目印（insertBulletMarker
+  // 参照）で、印刷（PDF化）には含めない。
+  if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent.replace(/​/g, ""));
   if (node.nodeType !== Node.ELEMENT_NODE) return document.createDocumentFragment();
   if (node.tagName === "BR") return document.createElement("br");
   if (node.classList && node.classList.contains("note-anchor")) {
@@ -678,7 +937,9 @@ function buildPrintPara(paraEl) {
   //   sidenote-pdf-docから移植）。
   if (paraEl.dataset.align) el.style.textAlign = paraEl.dataset.align;
   const styleLook = paraStyleSettings[paraEl.dataset.style];
-  if (styleLook && styleLook.fontSizePt) el.style.fontSize = `${styleLook.fontSizePt}pt`;
+  // 書式ツールバーの「文字サイズ」で個別指定した段落は、見出しの既定サイズより優先する（applyParaStylesと同じ）。
+  if (paraEl.dataset.fontSizePt) el.style.fontSize = `${paraEl.dataset.fontSizePt}pt`;
+  else if (styleLook && styleLook.fontSizePt) el.style.fontSize = `${styleLook.fontSizePt}pt`;
   if (styleLook && styleLook.bold) el.style.fontWeight = "700";
   Array.from(paraEl.childNodes).forEach((n) => el.appendChild(buildPrintNode(n)));
   return el;
@@ -804,7 +1065,7 @@ function handleOpenedFile(file, handle = null) {
   reader.onload = async () => {
     try {
       await applyProjectData(JSON.parse(String(reader.result)));
-      setStatus(`読み込みました：${file.name}`);
+      setStatus("");   // .json読み込み成功時は表示なし（前回の保存結果等が残っていればここで消す）
     } catch (err) {
       console.error(err);
       setStatus("読み込みに失敗しました。ファイルが壊れているか、対応していない形式です。");
@@ -1027,34 +1288,52 @@ Object.keys(showLabelInputs).forEach((c) => {
   };
 });
 
-// 上段（ファイル操作）・下段（書式ツールバー）は、それぞれ独立に画面上部へ固定できる
-// （ツールバー右の「上段メニュー固定」「下段メニュー固定」チェックボックス。この端末の個人設定
-// としてlocalStorageへ。既定はどちらもfalse＝固定しない）。.menu-stickyを付けるのは行を包む
-// .toolbar-stickyラッパー側（toolbarMenu1WrapEl/toolbarMenu2WrapEl）。
-const MENU_STICKY_KEYS = { menu1: "sidenote-menu1-sticky-v1", menu2: "sidenote-menu2-sticky-v1" };
-const menuStickyState = { menu1: false, menu2: false };
-function applyMenuSticky(key, el, toggleEl) {
-  el.classList.toggle("menu-sticky", menuStickyState[key]);
-  toggleEl.checked = menuStickyState[key];
+// 編集メニュー（書式ツールバー）は「表示/非表示」「固定/解除」をそれぞれ独立に選べる
+// （ツールバー右の「編集メニューを表示」「編集メニューを固定」チェックボックス。この端末の
+// 個人設定としてlocalStorageへ。既定は表示=true・固定=false）。.menu-stickyを付けるのは
+// 行を包む.toolbar-stickyラッパー側（toolbarMenu2WrapEl）、表示/非表示は中身の#formatToolbar
+// 自体（PDFモードでの強制非表示＝setMode()と両立させるため、applyEditMenuVisibility()に集約する）。
+const MENU2_STICKY_KEY = "sidenote-menu2-sticky-v1";
+const MENU2_VISIBLE_KEY = "sidenote-menu2-visible-v1";
+const menuStickyState = { menu2: false };
+const menuVisibleState = { menu2: true };
+try {
+  const rawSticky = localStorage.getItem(MENU2_STICKY_KEY);
+  if (rawSticky !== null) menuStickyState.menu2 = rawSticky === "1";
+  const rawVisible = localStorage.getItem(MENU2_VISIBLE_KEY);
+  if (rawVisible !== null) menuVisibleState.menu2 = rawVisible === "1";
+} catch (err) { /* noop */ }
+
+function applyMenuSticky() {
+  toolbarMenu2WrapEl.classList.toggle("menu-sticky", menuStickyState.menu2);
+  menu2StickyToggle.checked = menuStickyState.menu2;
 }
-["menu1", "menu2"].forEach((key) => {
-  try {
-    const raw = localStorage.getItem(MENU_STICKY_KEYS[key]);
-    if (raw !== null) menuStickyState[key] = raw === "1";
-  } catch (err) { /* noop */ }
-});
-applyMenuSticky("menu1", toolbarMenu1WrapEl, menu1StickyToggle);
-applyMenuSticky("menu2", toolbarMenu2WrapEl, menu2StickyToggle);
-menu1StickyToggle.onchange = () => {
-  menuStickyState.menu1 = menu1StickyToggle.checked;
-  applyMenuSticky("menu1", toolbarMenu1WrapEl, menu1StickyToggle);
-  try { localStorage.setItem(MENU_STICKY_KEYS.menu1, menuStickyState.menu1 ? "1" : "0"); } catch (err) { /* noop */ }
-};
+// PDFモードでは書式ツールバー自体が使えないため常に非表示（setMode参照）。それ以外は
+// 「編集メニューを表示」チェックボックスの状態に従う。
+function applyEditMenuVisibility() {
+  formatToolbarEl.hidden = currentMode === "pdf" || !menuVisibleState.menu2;
+  menu2VisibleToggle.checked = menuVisibleState.menu2;
+}
+applyMenuSticky();
+applyEditMenuVisibility();
 menu2StickyToggle.onchange = () => {
   menuStickyState.menu2 = menu2StickyToggle.checked;
-  applyMenuSticky("menu2", toolbarMenu2WrapEl, menu2StickyToggle);
-  try { localStorage.setItem(MENU_STICKY_KEYS.menu2, menuStickyState.menu2 ? "1" : "0"); } catch (err) { /* noop */ }
+  applyMenuSticky();
+  try { localStorage.setItem(MENU2_STICKY_KEY, menuStickyState.menu2 ? "1" : "0"); } catch (err) { /* noop */ }
 };
+menu2VisibleToggle.onchange = () => {
+  menuVisibleState.menu2 = menu2VisibleToggle.checked;
+  applyEditMenuVisibility();
+  try { localStorage.setItem(MENU2_VISIBLE_KEY, menuVisibleState.menu2 ? "1" : "0"); } catch (err) { /* noop */ }
+};
+
+// 上段メニュー固定の代わりの「トップに戻る」ボタン：ヒーローを過ぎてある程度スクロールした時だけ
+// 出す（常時出しっぱなしだと最初から見えてしまい、固定機能の代わりという役割が伝わらないため）。
+const BACK_TO_TOP_SHOW_AT = 400;
+document.addEventListener("scroll", () => {
+  backToTopBtn.hidden = window.scrollY < BACK_TO_TOP_SHOW_AT;
+});
+backToTopBtn.onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
 // ---- デザイン（テーマ）切替 ----
 const THEMES = [
@@ -1362,6 +1641,31 @@ function insertImageBlock(file) {
   buildAndInsertImageBlock(file, getCurrentParaOrLast());
 }
 
+// ---- 表の挿入（書式ツールバーの「表を挿入」。画像挿入と同じ「現在の段落の直後に置く」方式） ----
+// セルは表自体のcontenteditable="true"（buildTableParaEl参照）でそのまま書き換えられる。
+// 行・列の追加/削除UIは無く既定の行列数（見出し1行＋本文2行×3列）のまま。もっと大きい表が
+// 要る場合は今のところMarkdown取り込みを使うか、複数の表を並べる想定（2026-09、既知の簡略化）。
+function insertTableBlock() {
+  const cols = 3, rows = 2;
+  const paraId = "tbl" + tableIdSeq++;
+  const wrap = buildTableParaEl(paraId, Array(cols).fill(""), null, Array.from({ length: rows }, () => Array(cols).fill("")));
+  const afterEl = getCurrentParaOrLast();
+  if (afterEl && afterEl.parentElement === doc) afterEl.insertAdjacentElement("afterend", wrap);
+  else doc.appendChild(wrap);
+  if (!wrap.nextElementSibling) {
+    const trailingPara = document.createElement("div");
+    trailingPara.className = "para";
+    trailingPara.innerHTML = "<br>";
+    wrap.insertAdjacentElement("afterend", trailingPara);
+  }
+  bindTableParaEvents(wrap);
+  updatePlaceholder();
+  renumberAndLayout();
+  autoSaveDebounced();
+  wrap.querySelector("th, td")?.focus();
+}
+insertTableBtn.onclick = insertTableBlock;
+
 function buildImageParaEl(paraId, src) {
   const wrap = document.createElement("div");
   wrap.className = "para para-image para-opaque";
@@ -1474,6 +1778,10 @@ function buildTableParaEl(paraId, header, aligns, rows) {
 
   const table = document.createElement("table");
   table.className = "para-table-el";
+  // 表自体はcontenteditable="true"の島にして、セルの文字をそのまま書き換えられるようにする
+  // （外側の.para-tableは行・列の追加/削除UIが無いままなのでcontenteditable="false"のまま。
+  // 2026-09、「表を挿入」ボタン追加に合わせてMarkdown取り込みの表も含め編集可能にした）。
+  table.contentEditable = "true";
   if (header && header.length) {
     const thead = document.createElement("thead");
     const tr = document.createElement("tr");
@@ -1844,11 +2152,36 @@ function runDocCommandOnPendingRange(command) {
 
 doc.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); insertNewParagraph(); return; }
+  // 表のセル内でのTab／Shift+Tabは、次／前のセルへ移動する（Excel・Wordと同じ操作感）。
+  // ネイティブのcontenteditableテーブルにはこの挙動が無いため自前で実装する。表は
+  // contentEditable=falseの外殻(.para-table)の中にcontentEditable=trueの<table>だけがある
+  // 構造なので、focusは常に#doc側のまま＝e.targetは使えず、選択範囲から現在のセルを辿る
+  // （行・列の追加/削除UIは無いので、最後のセルでのTabは何もしない）。
+  if (e.key === "Tab") {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const node = sel.getRangeAt(0).startContainer;
+    const cell = (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement)?.closest("td, th");
+    if (!cell) return;
+    e.preventDefault();
+    const table = cell.closest("table");
+    const cells = Array.from(table.querySelectorAll("td, th"));
+    const target = cells[cells.indexOf(cell) + (e.shiftKey ? -1 : 1)];
+    if (!target) return;
+    const r = document.createRange();
+    r.selectNodeContents(target);
+    r.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(r);
+    return;
+  }
   // Ctrl+Zはここでは何も処理しない＝ブラウザのネイティブundoにそのまま任せる。
 });
 
-// Enterで新しい.para（プレーンな段落）を作る。見出し・リスト項目の途中でEnterしても常にプレーンな
-// 段落が続く（構造の変更はしない・軽い手直しに留める、というこのアプリの前提に合わせた仕様）。
+// Enterで新しい.paraを作る。見出し・引用等の途中でEnterしても常にプレーンな段落が続く
+// （構造の変更はしない・軽い手直しに留める、というこのアプリの前提に合わせた仕様）が、
+// 箇条書き（.para-li）だけは例外でリストを継続する（2026-09追加。inheritParaFormat内の
+// continueBulletList参照。空の箇条書きでEnterした場合は標準的なエディタと同様にリストを抜ける）。
 function insertNewParagraph() {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return;
@@ -1883,7 +2216,9 @@ function insertNewParagraph() {
       currentPara.after(newPara);
       inheritParaFormat(currentPara, newPara);
       const r = document.createRange();
-      r.setStart(newPara, 0);
+      // continueBulletList()が箇条書きマーカーをnewParaの先頭に足していたら、
+      // カーソルはマーカー（編集不可）の後ろ＝1番目の子から始める。
+      r.setStart(newPara, newPara.classList.contains("para-li") ? 1 : 0);
       r.collapse(true);
       sel.removeAllRanges();
       sel.addRange(r);
@@ -1899,7 +2234,7 @@ function insertNewParagraph() {
   if (currentPara) inheritParaFormat(currentPara, newPara);
 
   const r = document.createRange();
-  r.setStart(newPara, 0);
+  r.setStart(newPara, newPara.classList.contains("para-li") ? 1 : 0);
   r.collapse(true);
   sel.removeAllRanges();
   sel.addRange(r);
@@ -1967,20 +2302,67 @@ function applyParaStyles(paras) {
     p.style.textAlign = p.dataset.align || "";
     // 見出しの実際の見た目（文字サイズ・太字）は「項番設定」パネルのparaStyleSettingsから引く
     // （fontSizePtがnull＝本文と同じ文字サイズのまま、boldだけ独立して効かせる）。
+    // 書式ツールバーの「文字サイズ」で個別に指定した段落（data-font-size-pt）は、見出しの既定より優先する。
     const styleLook = paraStyleSettings[p.dataset.style];
-    p.style.fontSize = (styleLook && styleLook.fontSizePt) ? `${styleLook.fontSizePt}pt` : "";
+    const sizePt = p.dataset.fontSizePt ? Number(p.dataset.fontSizePt) : (styleLook && styleLook.fontSizePt) || null;
+    p.style.fontSize = sizePt ? `${sizePt}pt` : "";
     p.style.fontWeight = (styleLook && styleLook.bold) ? "700" : "";
   });
 }
 
-// Enterで段落を分けた直後は、直前の段落の配置・インデント・ぶら下げ・スタイルを引き継ぐ
+// Enterで段落を分けた直後は、直前の段落の配置・インデント・ぶら下げ・スタイル・文字サイズを引き継ぐ
 // （準備書面等の番号付き項目を続けて書く時、行ごとに書式を付け直さずに済むようにするため）。
 // 太字・下線は文字への書式なので対象外（新しい行の頭は素の状態から始まる）。
+// 加えて、直前の段落が箇条書き（.para-li）だった場合はリストを継続する（下部参照）。
 function inheritParaFormat(fromPara, toPara) {
-  ["indentLevel", "hanging", "align", "style"].forEach((key) => {
+  ["indentLevel", "hanging", "align", "style", "fontSizePt"].forEach((key) => {
     if (fromPara.dataset[key] !== undefined) toPara.dataset[key] = fromPara.dataset[key];
   });
   applyParaStyles([toPara]);
+  continueBulletList(fromPara, toPara);
+}
+
+// 箇条書きのマーカー（contenteditable="false"のspan）を段落の先頭に差し込む。
+// マーカーの直後が既に文字ノードでない場合（空の段落＝<br>だけ、等）はゼロ幅スペース(U+200B)
+// だけのテキストノードを1つ挟んでおく：contenteditable=false要素の「境界ちょうど」に
+// カーソルを置いた直後に入力すると、Chromeの既知の挙動で選択範囲そのものが失われ、次の1文字が
+// 別の場所（文書の先頭等）へ入ってしまう不具合があった（2026-09、箇条書き継続直後に発覚。
+// addTextNoteのゼロ幅スペース対策と同じ理由だが、あちらは1回限りの挿入操作の最中だけ使って
+// すぐ除去するのに対し、ここはユーザーが実際に入力するまで残しておく必要がある）。
+// 空のテキストノードでは同じ問題が再発したため、必ずゼロ幅スペースを使う。書き出し側
+// （inlineNodeToMarkdown・buildPrintNode・collectInlineRuns）で除去するので本文には残らない。
+function insertBulletMarker(p, markerText) {
+  const marker = document.createElement("span");
+  marker.className = "li-marker";
+  marker.contentEditable = "false";
+  marker.textContent = markerText;
+  p.insertBefore(marker, p.firstChild);
+  if (!marker.nextSibling || marker.nextSibling.nodeType !== Node.TEXT_NODE) {
+    p.insertBefore(document.createTextNode("​"), marker.nextSibling);
+  }
+  return marker;
+}
+
+// 直前の段落が箇条書き（.para-li）だった場合の続き：文字が残っていれば同じ種類のマーカー
+// （• そのまま／番号付きは+1）を新しい段落にも差し込んでリストを継続する。マーカーだけ（本文が
+// 空）でEnterした場合は、標準的なエディタと同様にリストを抜ける（空の箇条書きが残り続けるのを
+// 防ぐため、直前の段落側もただの段落に戻す）。見出し・引用等はこの対象に含めない
+// （insertNewParagraph側のコメント通り、この2つ以外は常にプレーンな段落のままにする方針）。
+function continueBulletList(fromPara, toPara) {
+  if (!fromPara.classList.contains("para-li")) return;
+  const marker = fromPara.querySelector(".li-marker");
+  const markerText = marker ? marker.textContent : "";
+  // ゼロ幅スペース(U+200B)はinsertBulletMarker()が入力安定化のために挟む目印なので、
+  // 「本文が空か」の判定からは除く（残っているだけで「空でない」と誤判定されるのを防ぐ）。
+  const restText = Array.from(fromPara.childNodes).filter((n) => n !== marker).map((n) => n.textContent).join("").replace(/​/g, "").trim();
+  if (!restText) {
+    if (marker) marker.remove();
+    fromPara.classList.remove("para-li");
+    return;
+  }
+  const orderedMatch = markerText.match(/^(\d+)\./);
+  insertBulletMarker(toPara, orderedMatch ? `${Number(orderedMatch[1]) + 1}. ` : markerText);
+  toPara.classList.add("para-li");
 }
 
 function applyAlign(align) {
@@ -2024,6 +2406,25 @@ function applyHangingStep(delta) {
 hangingDecBtn.onclick = () => applyHangingStep(-1);
 hangingIncBtn.onclick = () => applyHangingStep(1);
 
+// 文字サイズは段落ごとにpt単位で個別指定できる（インデント・ぶら下げと同じ−／＋のステッパー式。
+// FONT_SIZE_*定数はファイル冒頭で定義済み）。既定（未指定）に戻ると「既定」表示に戻し、
+// data-font-size-pt自体を消す（インデントの0と同じ考え方）。見出し（H1〜H3）の既定サイズより
+// 優先する（applyParaStyles参照）。
+function applyFontSizeStep(delta) {
+  const paras = getTargetParas();
+  if (!paras.length) return;
+  paras.forEach((p) => {
+    const current = Number(p.dataset.fontSizePt) || FONT_SIZE_DEFAULT_PT;
+    const next = Math.max(FONT_SIZE_MIN_PT, Math.min(FONT_SIZE_MAX_PT, current + delta));
+    if (next === FONT_SIZE_DEFAULT_PT) delete p.dataset.fontSizePt; else p.dataset.fontSizePt = String(next);
+  });
+  applyParaStyles(paras);
+  updateFormatToolbarState();
+  autoSaveDebounced();
+}
+fontSizeDecBtn.onclick = () => applyFontSizeStep(-1);
+fontSizeIncBtn.onclick = () => applyFontSizeStep(1);
+
 // スタイルは「本文」（data-style無し）とH1〜H3の排他選択（配置と同じ考え方）。
 function applyStyle(styleKey) {
   const paras = getTargetParas();
@@ -2034,6 +2435,31 @@ function applyStyle(styleKey) {
   autoSaveDebounced();
 }
 styleBtns.forEach((btn) => { btn.onclick = () => applyStyle(btn.dataset.style); });
+
+// 箇条書きの追加・解除（トグル）。対象段落が既に全て箇条書きなら解除、そうでなければ追加する
+// （配置・スタイルと違って複数状態の排他選択ではなく単純なON/OFFなので、この判定にする）。
+function isBulletListPara(p) { return p.classList.contains("para-li"); }
+function toggleBulletList() {
+  const paras = getTargetParas();
+  if (!paras.length) return;
+  const allAreList = paras.every(isBulletListPara);
+  paras.forEach((p) => {
+    if (allAreList) {
+      const marker = p.querySelector(".li-marker");
+      if (marker) marker.remove();
+      p.classList.remove("para-li");
+    } else if (!isBulletListPara(p)) {
+      delete p.dataset.style;   // 見出しと箇条書きは同時に成立しないため解除する
+      insertBulletMarker(p, "• ");
+      p.classList.add("para-li");
+      if (!p.dataset.hanging) p.dataset.hanging = "1";   // 折り返しがマーカーの下に潜り込まないように
+    }
+  });
+  applyParaStyles(paras);
+  updateFormatToolbarState();
+  autoSaveDebounced();
+}
+bulletListBtn.onclick = toggleBulletList;
 
 // 太字・下線は選択した文字へ（execCommand経由＝Ctrl+Zのundo対象にもなる）。
 // 選択が折りたたまれている（カーソルだけ）場合はブラウザ標準の挙動として、以後タイプする文字に適用される。
@@ -2087,8 +2513,23 @@ kentenBtn.onclick = toggleKenten;
 
 // ツールバーのボタンをクリックしても#docのフォーカス・選択範囲を失わないようにする
 // （失うと、どの段落・どの文字範囲に適用すべきか分からなくなるため。定番のmousedown+preventDefault）。
+//
+// ただし文字を選択した直後はmouseup→handleSelection()がノート追加ポップオーバーを開き、
+// popoverInput.focus()が#doc側の選択範囲を消してしまう（window.getSelection()がポップオーバー内の
+// 空選択になる）。この状態のまま配置・インデント・ぶら下げ・スタイル・太字・下線・傍点のどれを押しても
+// 対象の段落・文字範囲が見つからず、ボタンが効かないように見えてしまう（2026-09発見の不具合）。
+// ポップオーバーが開いたまま書式ボタンを押した＝ノート追加ではなく書式を選んだ、とみなし、
+// クリックの実処理が走る前（mousedown時点）に選択範囲をpendingTarget.rangeから復元し、
+// ポップオーバーは閉じる。
 formatToolbarEl.addEventListener("mousedown", (e) => {
-  if (e.target.closest("button")) e.preventDefault();
+  if (!e.target.closest("button")) return;
+  e.preventDefault();
+  if (!popoverEl.hidden && pendingTarget && pendingTarget.type === "text") {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(pendingTarget.range.cloneRange());
+    closePopover();
+  }
 });
 
 // 現在のカーソル位置（または選択）に応じて、ツールバーの状態（選択中の配置・ぶら下げ・スタイルの
@@ -2109,8 +2550,14 @@ function updateFormatToolbarState() {
   indentDecBtn.disabled = !p || indentLevel <= 0;
   indentIncBtn.disabled = !p || indentLevel >= INDENT_LEVEL_MAX;
 
+  const fontSizePt = p ? Number(p.dataset.fontSizePt || FONT_SIZE_DEFAULT_PT) : FONT_SIZE_DEFAULT_PT;
+  fontSizeLabel.textContent = p && p.dataset.fontSizePt ? `${fontSizePt}pt` : "既定";
+  fontSizeDecBtn.disabled = !p || fontSizePt <= FONT_SIZE_MIN_PT;
+  fontSizeIncBtn.disabled = !p || fontSizePt >= FONT_SIZE_MAX_PT;
+
   const styleKey = p ? (p.dataset.style || "") : "";
   styleBtns.forEach((btn) => btn.classList.toggle("active", !!p && (btn.dataset.style || "") === styleKey));
+  bulletListBtn.classList.toggle("active", !!p && isBulletListPara(p));
 
   let boldActive = false, underlineActive = false;
   try {
@@ -2368,9 +2815,11 @@ function setMode(mode) {
   docStackEl.hidden = isPdf;
   pdfViewerEl.hidden = !isPdf;
   docLabelEl.textContent = isPdf ? "PDF" : "本文（Markdown・テキスト・画像）";
-  // 本文用の書式ツールバー・.md書き出しはPDFページには適用できないため、pdfモードでは隠す。
-  formatToolbarEl.hidden = isPdf;
+  // 本文用の編集メニュー（書式ツールバー）・.md/.docx書き出しはPDFページには適用できないため、
+  // pdfモードでは隠す（編集メニューの表示/非表示ユーザー設定と合わせて決めるのでapplyEditMenuVisibility()経由）。
+  applyEditMenuVisibility();
   saveMdBtn.hidden = isPdf;
+  saveDocxBtn.hidden = isPdf;
   // モード切り替え時に前の状態を持ち越さない（本文モード側のホバーアイコン）。
   paraHoverEl.hidden = true;
   hoveredPara = null;

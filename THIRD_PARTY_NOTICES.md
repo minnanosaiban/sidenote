@@ -11,6 +11,15 @@ Cloudflare Pagesの公開対象なので、実際に配信されるのはここ�
 - cmaps/は、埋め込みフォントを持たないCJKフォント参照PDFでも文字化けしないようにするための定義済み
   エンコーディング一式（169ファイル、約1.5MB）。
 
+## docx
+
+`public/vendor/docx/docx.umd.js`に、docx（.docxファイルをブラウザ内で組み立てて生成するライブラリ）の
+ビルド済みUMDファイルをそのまま同梱しています。CDN読み込みは行わず、ローカルで完結させています。
+
+- 出典: https://github.com/dolanmiu/docx （npm: docx）
+- ライセンス: MIT License（全文は `public/vendor/docx/LICENSE`）
+- このUMDビルドにはdocxの依存ライブラリ（JSZip・nanoid・xml・xml-js、いずれもMIT）がバンドルされています。
+
 ## Bootstrap Icons
 
 `public/index.html` と `public/app.js` に、いくつかのアイコンをSVGとして直接埋め込んでいます
