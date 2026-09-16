@@ -63,6 +63,7 @@ const underlineBtn = document.getElementById("underlineBtn");
 const kentenBtn = document.getElementById("kentenBtn");
 const styleBtns = Array.from(formatToolbarEl.querySelectorAll("[data-style]"));
 const bulletListBtn = document.getElementById("bulletListBtn");
+const orderedListBtn = document.getElementById("orderedListBtn");
 const insertTableBtn = document.getElementById("insertTableBtn");
 const markdownModeToggle = document.getElementById("markdownModeToggle");
 const docStackEl = document.getElementById("docStack");
@@ -2467,30 +2468,56 @@ function applyStyle(styleKey) {
 }
 styleBtns.forEach((btn) => { btn.onclick = () => applyStyle(btn.dataset.style); });
 
-// 箇条書きの追加・解除（トグル）。対象段落が既に全て箇条書きなら解除、そうでなければ追加する
-// （配置・スタイルと違って複数状態の排他選択ではなく単純なON/OFFなので、この判定にする）。
-function isBulletListPara(p) { return p.classList.contains("para-li"); }
+// 箇条書き（・）／番号付き（1.）の追加・解除（トグル）。.para-liクラス自体はどちらも共通で、
+// 種類は.li-markerの中身（数字始まりかどうか）で見分ける（docToMarkdown等の書き出し側と同じ判定）。
+// 対象段落が既に全て同じ種類のリストなら解除、そうでなければその種類へ揃える（別の種類のリストや
+// 素の段落が混ざっていた場合は、既存マーカーを置き換えてその種類へ統一する）。
+function liOrderedMarker(p) {
+  const marker = p.querySelector(".li-marker");
+  return !!(marker && /^\d+\./.test(marker.textContent.trim()));
+}
+function isBulletListPara(p) { return p.classList.contains("para-li") && !liOrderedMarker(p); }
+function isOrderedListPara(p) { return p.classList.contains("para-li") && liOrderedMarker(p); }
+
+function applyListMarker(paras, ordered) {
+  let n = 1;
+  paras.forEach((p) => {
+    delete p.dataset.style;   // 見出しとリストは同時に成立しないため解除する
+    const oldMarker = p.querySelector(".li-marker");
+    if (oldMarker) oldMarker.remove();
+    insertBulletMarker(p, ordered ? `${n++}. ` : "• ");
+    p.classList.add("para-li");
+    if (!p.dataset.hanging) p.dataset.hanging = "1";   // 折り返しがマーカーの下に潜り込まないように
+  });
+}
+function removeListMarker(paras) {
+  paras.forEach((p) => {
+    const marker = p.querySelector(".li-marker");
+    if (marker) marker.remove();
+    p.classList.remove("para-li");
+  });
+}
 function toggleBulletList() {
   const paras = getTargetParas();
   if (!paras.length) return;
-  const allAreList = paras.every(isBulletListPara);
-  paras.forEach((p) => {
-    if (allAreList) {
-      const marker = p.querySelector(".li-marker");
-      if (marker) marker.remove();
-      p.classList.remove("para-li");
-    } else if (!isBulletListPara(p)) {
-      delete p.dataset.style;   // 見出しと箇条書きは同時に成立しないため解除する
-      insertBulletMarker(p, "• ");
-      p.classList.add("para-li");
-      if (!p.dataset.hanging) p.dataset.hanging = "1";   // 折り返しがマーカーの下に潜り込まないように
-    }
-  });
+  if (paras.every(isBulletListPara)) removeListMarker(paras); else applyListMarker(paras, false);
   applyParaStyles(paras);
   updateFormatToolbarState();
   autoSaveDebounced();
 }
 bulletListBtn.onclick = toggleBulletList;
+
+// 番号付き（1. 2. 3. …）。Enterで続きの段落を作った時の自動採番はcontinueBulletList側
+// （マーカーの数字を見て+1する既存ロジック）がそのまま使えるので、ここでは初回の割り当てだけ行う。
+function toggleOrderedList() {
+  const paras = getTargetParas();
+  if (!paras.length) return;
+  if (paras.every(isOrderedListPara)) removeListMarker(paras); else applyListMarker(paras, true);
+  applyParaStyles(paras);
+  updateFormatToolbarState();
+  autoSaveDebounced();
+}
+orderedListBtn.onclick = toggleOrderedList;
 
 // 太字・下線は選択した文字へ（execCommand経由＝Ctrl+Zのundo対象にもなる）。
 // 選択が折りたたまれている（カーソルだけ）場合はブラウザ標準の挙動として、以後タイプする文字に適用される。
@@ -2580,9 +2607,13 @@ function updateFormatToolbarState() {
   hangingDecBtn.disabled = markdownMode || !p || hangingChars <= 0;
   hangingIncBtn.disabled = markdownMode || !p || hangingChars >= HANGING_MAX;
 
+  // インデントは箇条書き・番号付きの入れ子（Markdownの2字下げネスト）には反映されるため、
+  // Markdownモードでもリスト項目にいる間だけは塞がない（配置・ぶら下げ・文字サイズ・傍点は
+  // リスト項目でもMarkdownに反映されないため無条件に塞ぐ。docToMarkdown参照）。
   const indentLevel = p ? Number(p.dataset.indentLevel || 0) : 0;
-  indentDecBtn.disabled = markdownMode || !p || indentLevel <= 0;
-  indentIncBtn.disabled = markdownMode || !p || indentLevel >= INDENT_LEVEL_MAX;
+  const indentBlockedByMd = markdownMode && !(p && p.classList.contains("para-li"));
+  indentDecBtn.disabled = indentBlockedByMd || !p || indentLevel <= 0;
+  indentIncBtn.disabled = indentBlockedByMd || !p || indentLevel >= INDENT_LEVEL_MAX;
 
   const fontSizePt = p ? Number(p.dataset.fontSizePt || FONT_SIZE_DEFAULT_PT) : FONT_SIZE_DEFAULT_PT;
   fontSizeLabel.textContent = p && p.dataset.fontSizePt ? `${fontSizePt}pt` : "既定";
@@ -2592,6 +2623,7 @@ function updateFormatToolbarState() {
   const styleKey = p ? (p.dataset.style || "") : "";
   styleBtns.forEach((btn) => btn.classList.toggle("active", !!p && (btn.dataset.style || "") === styleKey));
   bulletListBtn.classList.toggle("active", !!p && isBulletListPara(p));
+  orderedListBtn.classList.toggle("active", !!p && isOrderedListPara(p));
 
   let boldActive = false, underlineActive = false;
   try {
