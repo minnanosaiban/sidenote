@@ -623,6 +623,21 @@ body.print-active.no-sidenote .print-img { width: 156.6mm; max-width: 156.6mm; }
 .fmt-label { display: inline-block; min-width: 34px; font-size: 12.5px; color: var(--tx-text); text-align: center; }
 .fmt-btn-kenten { letter-spacing: -1px; }   /* 「傍点」2文字がボタン内でやや間延びして見えるため少し詰める */
 
+/* Markdownモード切替（表を挿入の右）。見た目は上段.menu-pin-toggleと揃える。 */
+.fmt-md-toggle {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--tx-muted-2);
+  cursor: pointer; white-space: nowrap;
+}
+.fmt-md-toggle input { flex: none; }
+/* オン時：.md書き出しに反映されない書式（配置・インデント・ぶら下げ・文字サイズ）のラベル文字と、
+   サイドノート欄をグレーアウトする。ボタン自体の見た目はapp.js側でdisabled=trueにして
+   既存の.fmt-btn:disabledに任せる（傍点ボタンもここで一緒にグレーになる）。 */
+body.markdown-mode-active .fmt-unit-mdoff > .fmt-group-label,
+body.markdown-mode-active .fmt-unit-mdoff .fmt-label {
+  opacity: .45;
+}
+body.markdown-mode-active .doc-right-col { opacity: .45; pointer-events: none; }
+
 /* 傍点（強調の圏点）。execCommandに対応が無い書式のため独自のspan(.kenten)に持たせ、
    画面(#doc)・印刷(#printDoc)の両方に同じルールを当てる（印刷側の複製はbuildPrintNode参照）。
    横書きなので文字の上に付ける（over）。プレフィックス無しのtext-emphasis-*はChromeで対応済みだが、

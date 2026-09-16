@@ -64,6 +64,7 @@ const kentenBtn = document.getElementById("kentenBtn");
 const styleBtns = Array.from(formatToolbarEl.querySelectorAll("[data-style]"));
 const bulletListBtn = document.getElementById("bulletListBtn");
 const insertTableBtn = document.getElementById("insertTableBtn");
+const markdownModeToggle = document.getElementById("markdownModeToggle");
 const docStackEl = document.getElementById("docStack");
 const docLabelEl = document.getElementById("docLabel");
 const pdfViewerEl = document.getElementById("pdfViewer");
@@ -101,6 +102,12 @@ let hrIdSeq = 1;
 let currentMode = "text";   // "text" | "pdf"
 let currentPdfDoc = null;         // pdf.jsのPDFDocumentProxy（再レンダリング等では今のところ使わない。将来用に保持）
 let currentPdfDataUrl = null;     // 保存(.json)にそのまま埋め込む元PDFのdata URL
+// Markdownモード（「表を挿入」の右のチェックボックス）。.md書き出しに反映されない書式・サイドノートを
+// グレーアウトする（updateFormatToolbarState・handleSelection参照）。updateFormatToolbarStateは
+// このファイル下部で初回呼び出しされるため、その時点までにここで初期化しておく必要がある。
+const MARKDOWN_MODE_KEY = "sidenote-markdown-mode-v1";
+let markdownMode = false;
+try { markdownMode = localStorage.getItem(MARKDOWN_MODE_KEY) === "1"; } catch (err) { /* noop */ }
 // pdfモードでの注釈の「正本」。#doc（docHTML）に相当する存在で、DOM上の.pdf-markは
 // これを描画した結果に過ぎない（ページの再描画時はこの配列から作り直す）。
 let pdfAnchors = [];
@@ -1223,6 +1230,7 @@ function getNodePara(node) {
 }
 
 function handleSelection() {
+  if (markdownMode) return;   // Markdownモード中はサイドノート追加不可（.md書き出しに残らないため）
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
   const range = sel.getRangeAt(0);
@@ -1327,6 +1335,28 @@ menu2VisibleToggle.onchange = () => {
   applyEditMenuVisibility();
   try { localStorage.setItem(MENU2_VISIBLE_KEY, menuVisibleState.menu2 ? "1" : "0"); } catch (err) { /* noop */ }
 };
+
+// ---- Markdownモード（「表を挿入」の右のチェックボックス） ----
+// .md書き出し（docToMarkdown）には、配置・インデント（箇条書きの入れ子以外）・ぶら下げ・
+// 文字サイズ・傍点は一切反映されず、サイドノート（注釈）も引用元のプレーンテキストだけが残り
+// コメント本体は消える（docToMarkdown・help.htmlの「MDで書き出す」説明と同じ理解）。
+// Markdown書き出しを前提に編集する人が、書いても消えてしまう装飾に気づかず使ってしまわないよう、
+// このチェックを付けている間はそれらの操作をグレーアウトして使えなくする（本体のデータは消さない。
+// 既に付いている書式・サイドノートは.jsonには残ったままで、チェックを外せばまた使える）。
+// 文書ごとではなく端末側の編集時プリファレンスなので、他のメニュー表示設定と同じくlocalStorageに置く
+// （markdownMode自体の宣言・localStorage読み込みはファイル冒頭のモード変数群でまとめて行う。
+// updateFormatToolbarStateの初回呼び出しがこのブロックより前にあるため、宣言だけ先出しが必要）。
+function applyMarkdownMode() {
+  document.body.classList.toggle("markdown-mode-active", markdownMode);
+  markdownModeToggle.checked = markdownMode;
+  updateFormatToolbarState();
+}
+markdownModeToggle.onchange = () => {
+  markdownMode = markdownModeToggle.checked;
+  try { localStorage.setItem(MARKDOWN_MODE_KEY, markdownMode ? "1" : "0"); } catch (err) { /* noop */ }
+  applyMarkdownMode();
+};
+applyMarkdownMode();
 
 // 上段メニュー固定の代わりの「トップに戻る」ボタン：ヒーローを過ぎてある程度スクロールした時だけ
 // 出す（常時出しっぱなしだと最初から見えてしまい、固定機能の代わりという役割が伝わらないため）。
@@ -2540,21 +2570,24 @@ function updateFormatToolbarState() {
   const p = paras[0] || null;
 
   const align = p ? (p.dataset.align || "left") : "left";
-  alignBtns.forEach((btn) => btn.classList.toggle("active", !!p && btn.dataset.align === align));
+  alignBtns.forEach((btn) => {
+    btn.classList.toggle("active", !!p && btn.dataset.align === align);
+    btn.disabled = markdownMode;
+  });
 
   const hangingChars = p ? Number(p.dataset.hanging || 0) : 0;
   hangingLabel.textContent = hangingChars > 0 ? `${hangingChars}字` : "オフ";
-  hangingDecBtn.disabled = !p || hangingChars <= 0;
-  hangingIncBtn.disabled = !p || hangingChars >= HANGING_MAX;
+  hangingDecBtn.disabled = markdownMode || !p || hangingChars <= 0;
+  hangingIncBtn.disabled = markdownMode || !p || hangingChars >= HANGING_MAX;
 
   const indentLevel = p ? Number(p.dataset.indentLevel || 0) : 0;
-  indentDecBtn.disabled = !p || indentLevel <= 0;
-  indentIncBtn.disabled = !p || indentLevel >= INDENT_LEVEL_MAX;
+  indentDecBtn.disabled = markdownMode || !p || indentLevel <= 0;
+  indentIncBtn.disabled = markdownMode || !p || indentLevel >= INDENT_LEVEL_MAX;
 
   const fontSizePt = p ? Number(p.dataset.fontSizePt || FONT_SIZE_DEFAULT_PT) : FONT_SIZE_DEFAULT_PT;
   fontSizeLabel.textContent = p && p.dataset.fontSizePt ? `${fontSizePt}pt` : "既定";
-  fontSizeDecBtn.disabled = !p || fontSizePt <= FONT_SIZE_MIN_PT;
-  fontSizeIncBtn.disabled = !p || fontSizePt >= FONT_SIZE_MAX_PT;
+  fontSizeDecBtn.disabled = markdownMode || !p || fontSizePt <= FONT_SIZE_MIN_PT;
+  fontSizeIncBtn.disabled = markdownMode || !p || fontSizePt >= FONT_SIZE_MAX_PT;
 
   const styleKey = p ? (p.dataset.style || "") : "";
   styleBtns.forEach((btn) => btn.classList.toggle("active", !!p && (btn.dataset.style || "") === styleKey));
@@ -2573,6 +2606,7 @@ function updateFormatToolbarState() {
   const anchorNode = sel2 && sel2.rangeCount ? sel2.anchorNode : null;
   const anchorEl = anchorNode && (anchorNode.nodeType === Node.ELEMENT_NODE ? anchorNode : anchorNode.parentElement);
   kentenBtn.classList.toggle("active", !!(anchorEl && doc.contains(anchorEl) && anchorEl.closest(".kenten")));
+  kentenBtn.disabled = markdownMode;
 }
 document.addEventListener("selectionchange", () => {
   const sel = window.getSelection();
