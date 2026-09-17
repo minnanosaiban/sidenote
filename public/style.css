@@ -197,7 +197,14 @@ body {
    独立行）用だったmax-width/auto中央寄せは外す。 */
 #saveStatus { margin-top: 4px; font-size: 12.5px; color: #666; min-height: 1.4em; }
 
-.app-footer { max-width: 900px; margin: 48px auto 0; text-align: left; font-size: 11px; color: var(--tx-muted-2); }
+.app-footer {
+  max-width: 900px; margin: 48px auto 0; text-align: left; font-size: 11px; color: var(--tx-muted-2);
+  display: flex; flex-wrap: wrap; gap: 24px;
+}
+.footer-section { min-width: 180px; }
+.footer-section-title { font-weight: 700; margin-bottom: 2px; }
+.footer-section > div { line-height: 1.6; }
+@media (max-width: 600px) { .app-footer { gap: 10px 24px; } }
 
 /* ── 「設定」「デザイン」のドロップダウンパネル ──
    note-popoverと同じ考え方（枠線ではなく影だけで境界を示す）を踏襲。 */

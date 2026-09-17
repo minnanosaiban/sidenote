@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Old+Mincho:wght@400;600&family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <!-- ?v=NUM はキャッシュ対策。style.css/themes.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=11">
 <link rel="stylesheet" href="themes.css?v=6">
 <!-- デザイン（テーマ）の初期反映を<body>のCSS読み込み前に済ませ、既定テーマへ一瞬だけ戻る
      ちらつき（FOUC）を防ぐ。app.js側の設定・保存内容と完全に同じキー・同じ既定値を使う。 -->
@@ -249,6 +249,9 @@ try {
     <!-- 表の挿入。現在の段落の直後に既定サイズ（見出し1行＋本文2行×3列）の表を挿入する。
          セルはそのまま書き換えられるが、行・列の追加/削除UIは無い（app.js insertTableBlock参照）。 -->
     <button type="button" class="fmt-btn" id="insertTableBtn" title="表を挿入（見出し1行＋本文2行×3列。セルはそのまま書き換えできます）">表を挿入</button>
+    <!-- 区切り線の挿入。現在の段落の直後に「---」相当の水平線を1本挿入する（app.js insertHrBlock参照）。
+         削除は画像・表と同じく、挿入された区切り線にマウスを乗せた時に出る×ボタン（bindHrParaEvents）で行う。 -->
+    <button type="button" class="fmt-btn" id="insertHrBtn" title="区切り線を挿入（削除は挿入後、区切り線の×ボタンで行えます）">区切り線</button>
   </span>
   <!-- Markdownモード：チェックすると、.md書き出しに反映されない書式（配置・ぶら下げ・文字サイズ・
        傍点）とサイドノート機能をグレーアウトして使えなくする。インデントは箇条書き・番号付きの
@@ -412,9 +415,10 @@ try {
   </div>
 </div>
 
-<!-- 文字サイズ・1行文字数の目安（目立たせない豆知識程度の位置づけ）。テーマはフォント種類と
-     色だけを変え、サイズ・段組み幅はテーマ共通の固定値なので、どのテーマでも成り立つ表記。 -->
-<footer class="app-footer">画面表示は本文15px・1行37字／PDF書き出しはサイドバーがあれば本文10.5pt・1行31字、無ければ本文12pt・1行37字が目安です（全角1文字≒1em換算）。</footer>
+<!-- 文字サイズ・1行文字数の目安（目立たせない豆知識程度の位置づけ）。フォント名だけデザイン（テーマ）
+     ごとに違うため、テーマ切り替え時・見出しスタイル（H1〜H3）設定変更時にJS側で書き直す
+     （app.js updateFooterInfo参照）。サイズ・段組み幅自体はテーマ共通の固定値（全角1文字≒1em換算）。 -->
+<footer class="app-footer" id="appFooter"></footer>
 
 <!-- 上段メニューの固定機能を廃止した代わりに、ある程度スクロールした後だけ現れる「トップに戻る」ボタン。
      画面のどの位置からでも一段操作（新しい作業／開く／保存）へ戻れるようにする（app.js参照）。 -->
@@ -422,9 +426,9 @@ try {
   <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5"/></svg>
 </button>
 
-<script src="md-parser.js?v=1"></script>
+<script src="md-parser.js?v=2"></script>
 <!-- .docx書き出し用（同梱ライブラリ。THIRD_PARTY_NOTICES.md参照）。app.js内ではグローバルdocxとして参照する。 -->
 <script src="vendor/docx/docx.umd.js"></script>
-<script src="app.js?v=17"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

@@ -23,6 +23,7 @@ const saveDocxBtn = document.getElementById("saveDocxBtn");
 const printDocEl = document.getElementById("printDoc");
 const loadInput = document.getElementById("loadInput");
 const saveStatusEl = document.getElementById("saveStatus");
+const appFooterEl = document.getElementById("appFooter");
 const resumeApplyBtn = document.getElementById("resumeApply");
 const resumeDiscardBtn = document.getElementById("resumeDiscard");
 // 「サイドノートに名前を表示する」の色ごとのチェックボックス（サイドノート欄の上部、2026-09に
@@ -65,6 +66,7 @@ const styleBtns = Array.from(formatToolbarEl.querySelectorAll("[data-style]"));
 const bulletListBtn = document.getElementById("bulletListBtn");
 const orderedListBtn = document.getElementById("orderedListBtn");
 const insertTableBtn = document.getElementById("insertTableBtn");
+const insertHrBtn = document.getElementById("insertHrBtn");
 const markdownModeToggle = document.getElementById("markdownModeToggle");
 const docStackEl = document.getElementById("docStack");
 const docLabelEl = document.getElementById("docLabel");
@@ -257,9 +259,10 @@ function rangeOverlapsLockedAnchor(range) {
 // このツールはAIチャットが書き出したMarkdownを扱うためのものなので、貼り付けも「開く」で
 // .mdファイルを選ぶのと同じ「Markdownとして解釈する」挙動にする（かつては専用の
 // 「MD貼付け」パネルがこの役割を持っていたが、貼り付け自体を取り込みにして廃止した）。
-//   ・本文が空のとき  → 文書全体の取り込み（先頭の見出しはタイトル欄へ、本文は丸ごと置き換え）
+//   ・本文が空のとき  → 文書全体の取り込み（タイトル欄は変えず、本文だけ丸ごと置き換え）
 //   ・すでに何か書かれているとき → カーソルのある段落の直後へブロックとして挿入
-// 既知の制約：どちらの経路もDOMを直接組み立てるためCtrl+Zでは戻せない（画像の挿入と同じ）。
+// どちらの経路もDOMを直接組み立てるためブラウザのネイティブundoの対象ではないが、
+// 独自のUndo/Redo（Ctrl+Z/Ctrl+Y。autoSave経由でのcommitUndoHistory参照）の対象には含まれる。
 // パーサーが読めていない場合だけ、従来のプレーンテキスト挿入（1行＝1段落）へ落とす。
 function linesToParaHtml(text) {
   return text.split(/\r\n|\r|\n/)
@@ -331,6 +334,8 @@ updatePlaceholder();
 // 注釈0件時のグレーアウトの見本カードが最初の入力までサイドに出ない）。
 renumberAndLayout();
 updateFormatToolbarState();
+// Undo/Redo履歴の初回セットは、このファイルの一番最後（currentTheme等、後ろの方でlet宣言される
+// 変数もserializeProject()が参照するため、それらの初期化が終わるのを待つ必要がある）で行う。
 
 // ---- 保存・読み込み（.jsonファイル） ----
 function projectTitle() {
@@ -368,6 +373,7 @@ async function applyProjectData(data) {
   numberingSettings = mergeNumberingSettings(data.numberingSettings);
   refreshStyleSettingInputs();
   refreshNumberingSettingInputs();
+  updateFooterInfo();   // 見出しスタイル設定はファイルごとに変わるため、読み込み時にも反映する
 
   if (data.mode === "pdf") {
     if (typeof data.pdfDataUrl !== "string") throw new Error("invalid pdf project data");
@@ -1073,6 +1079,7 @@ function handleOpenedFile(file, handle = null) {
   reader.onload = async () => {
     try {
       await applyProjectData(JSON.parse(String(reader.result)));
+      initUndoHistory();
       setStatus("");   // .json読み込み成功時は表示なし（前回の保存結果等が残っていればここで消す）
     } catch (err) {
       console.error(err);
@@ -1155,8 +1162,10 @@ docLeftEl.addEventListener("drop", async (e) => {
 const AUTOSAVE_KEY = "sidenote-autosave-v1";
 
 function autoSave() {
+  const snap = serializeProject();
+  commitUndoHistory(snap);
   try {
-    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(serializeProject()));
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snap));
   } catch (err) {
     // 容量超過等は無視。明示保存（.json書き出し）があるため致命的ではない。
   }
@@ -1184,6 +1193,7 @@ function checkAutoSaveOnLoad() {
     if (!hasContent) return;
     try {
       await applyProjectData(data);
+      initUndoHistory();
       setStatus("自動保存された内容を復元しました。");
     } catch (err) {
       console.error(err);
@@ -1192,6 +1202,111 @@ function checkAutoSaveOnLoad() {
   };
 }
 checkAutoSaveOnLoad();
+
+// ---- 元に戻す／やり直し（Ctrl+Z / Ctrl+Y） ----
+// 変更箇所ごとに個別の記録を仕込むのではなく、保存（serializeProject）と同じ形のスナップショットを
+// 履歴として積む方式にする。記録のタイミングは既存の自動保存（autoSave。本文入力・書式・
+// 画像/表/区切り線/サイドノートの追加削除など、状態を変える操作の最後に必ず呼ばれている）に
+// 相乗りすることで記録漏れを防ぐ（画像貼り付け等、従来Ctrl+Zの対象外だった操作も含めて全て対象になる）。
+// 連続する入力はautoSaveDebounced自体の800ms猶予でまとまるため、1文字ごとに履歴が増えることもない。
+const MAX_UNDO_HISTORY = 100;
+let undoHistoryStack = [];
+let undoHistoryPointer = -1;
+let isRestoringHistory = false;
+
+// 新しい文書を開いた・作り直した時（起動時の空文書、.json/.md/PDFを開く、「新しい作業」等）に
+// 履歴をその状態1件だけへリセットする。呼び出し箇所はimportMarkdownBlocks・resumeDiscardBtn・
+// renderPdfFromDataUrl（PDFを開く経路の共通入口）・handleOpenedFileとresumeApplyBtn（.json読み込み）参照。
+function initUndoHistory() {
+  undoHistoryStack = [serializeProject()];
+  undoHistoryPointer = 0;
+}
+
+// savedAtは呼ぶたびに変わってしまうため、比較時だけ除いて見る（実質変化が無いのに
+// タイムスタンプだけの違いで履歴が増え続けるのを防ぐ。Undo/Redoでの復元直後の
+// autoSave自身の記録もこれで無視される）。pdfDataUrl（元PDFのbase64、数MBになりうる）も
+// 同じPDFを開いているセッション内では常に同一の値なので、比較のたびに丸ごと文字列化しないよう除く。
+function snapshotForCompare(s) {
+  const { savedAt, pdfDataUrl, ...rest } = s;
+  return rest;
+}
+function snapshotsEqualIgnoringSavedAt(a, b) {
+  if (!a || !b) return false;
+  return JSON.stringify(snapshotForCompare(a)) === JSON.stringify(snapshotForCompare(b));
+}
+
+function commitUndoHistory(snap) {
+  if (isRestoringHistory) return;
+  if (snapshotsEqualIgnoringSavedAt(undoHistoryStack[undoHistoryPointer], snap)) return;
+  undoHistoryStack = undoHistoryStack.slice(0, undoHistoryPointer + 1);
+  undoHistoryStack.push(snap);
+  if (undoHistoryStack.length > MAX_UNDO_HISTORY) undoHistoryStack.shift();
+  undoHistoryPointer = undoHistoryStack.length - 1;
+}
+
+// pdfモードはapplyProjectData経由で復元するとPDF自体を毎回再レンダリングしてしまい重く、
+// スクロール位置も失われるため、ページはそのままに注釈（notesByAnchor・pdfAnchors）だけを
+// 復元する専用の経路にする（画像・表と同じ「DOM直接操作なので明示的に自前で行う」考え方）。
+async function applyUndoSnapshot(snap) {
+  isRestoringHistory = true;
+  try {
+    if (snap.mode === "pdf") {
+      paraStyleSettings = mergeParaStyleSettings(snap.paraStyleSettings);
+      numberingSettings = mergeNumberingSettings(snap.numberingSettings);
+      refreshStyleSettingInputs();
+      refreshNumberingSettingInputs();
+      notesByAnchor.clear();
+      (snap.notesByAnchor || []).forEach(([anchorId, notes]) => notesByAnchor.set(anchorId, notes || []));
+      anchorIdSeq = typeof snap.anchorIdSeq === "number" ? snap.anchorIdSeq : anchorIdSeq;
+      replyIdSeq = typeof snap.replyIdSeq === "number" ? snap.replyIdSeq : replyIdSeq;
+      titleInput.value = snap.title || "";
+      if (snap.colorNames && snap.colorNames.black) colorNames.black = snap.colorNames.black;
+      if (snap.colorNames && snap.colorNames.blue) colorNames.blue = snap.colorNames.blue;
+      updateColorSwatchLabels();
+      if (snap.theme) applyTheme(snap.theme);
+      pdfViewerEl.querySelectorAll(".pdf-mark").forEach((el) => el.remove());
+      pdfAnchors = [];
+      rebuildPdfAnchors(snap.pdfAnchors || []);
+      renumberAndLayout();
+    } else {
+      await applyProjectData(snap);   // initUndoHistory()は呼ばない版（このパス専用、履歴を消さない）
+    }
+  } finally {
+    isRestoringHistory = false;
+  }
+  autoSaveDebounced();
+}
+
+function undoEdit() {
+  if (undoHistoryPointer <= 0) { setStatus("これ以上元に戻せません。"); return; }
+  undoHistoryPointer--;
+  applyUndoSnapshot(undoHistoryStack[undoHistoryPointer]);
+}
+
+function redoEdit() {
+  if (undoHistoryPointer >= undoHistoryStack.length - 1) { setStatus("これ以上やり直せません。"); return; }
+  undoHistoryPointer++;
+  applyUndoSnapshot(undoHistoryStack[undoHistoryPointer]);
+}
+
+// 通常の入力欄（タイトル・ノート本文・数値設定等）にフォーカスがある間は、ブラウザ標準の
+// Undo/Redo（1文字ごとの取り消し）にそのまま任せる。それ以外（本文#doc・表のセル・
+// PDFモードなど）はここでまとめて処理する（画像貼り付け等、従来Ctrl+Zが効かなかった操作も含む）。
+function isNativeUndoField(el) {
+  return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
+}
+
+document.addEventListener("keydown", (e) => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (!mod) return;
+  const key = e.key.toLowerCase();
+  const isUndo = key === "z" && !e.shiftKey;
+  const isRedo = (key === "z" && e.shiftKey) || key === "y";
+  if (!isUndo && !isRedo) return;
+  if (isNativeUndoField(document.activeElement)) return;
+  e.preventDefault();
+  if (isUndo) undoEdit(); else redoEdit();
+});
 
 // 「新しい作業」：本文・ノート・画像・表に加えてタイトルも空にし、自動保存も消す（＝別の案件を新規に始める）。
 // pdfモードで押した場合も本文モード（打ち込み編集）へ戻す＝「PDFを開く」はあくまで「開く」経由の
@@ -1214,9 +1329,11 @@ resumeDiscardBtn.onclick = () => {
   numberingSettings = JSON.parse(JSON.stringify(DEFAULT_NUMBERING_SETTINGS));
   refreshStyleSettingInputs();
   refreshNumberingSettingInputs();
+  updateFooterInfo();
   renumberAndLayout();
   updatePlaceholder();
   updateFormatToolbarState();
+  initUndoHistory();
   checkAutoSaveOnLoad();
   setStatus("新しい作業を始めます。");
 };
@@ -1389,6 +1506,61 @@ function applyTheme(themeId) {
     btn.classList.toggle("selected", btn.dataset.themeId === valid);
   });
   try { localStorage.setItem(THEME_KEY, valid); } catch (err) { /* noop */ }
+  updateFooterInfo();
+}
+
+// ---- ページ最下部「文字サイズ・1行文字数の目安」の注記 ----
+// フォント名だけデザイン（テーマ）ごとに違う（サイズ・段組み幅はテーマ共通の固定値）ので、
+// テーマ切り替えのたびにここで書き直す。画面用は--font-body、PDF用は--p-font-body
+// （themes.css参照。body.print-active時だけ定義される値なので、一瞬だけクラスを付けて読む＝
+// buildPrintDocPdf末尾の強制リフローと同じ「同期処理内で完結させ画面には反映しない」考え方）。
+function firstFontName(cssFontFamilyValue) {
+  const first = String(cssFontFamilyValue || "").split(",")[0].trim();
+  return first.replace(/^['"]|['"]$/g, "") || "?";
+}
+
+// h1〜h3の実際のサイズは、ツールバーの見出しボタンで付けた場合は常にparaStyleSettings（見出し
+// スタイル設定）どおりになり、テーマの影響を受けない（Markdown取り込みが付ける.para-hNクラス側の
+// テーマ別CSSは、ツールバー適用の見出しには乗らないため）。既定はH1が16pt、H2・H3は「本文と同じ」。
+function headingSizeLabel(styleKey, bodySizeLabel) {
+  const s = paraStyleSettings[styleKey];
+  return s && s.fontSizePt ? `${s.fontSizePt}pt` : `${bodySizeLabel}（本文と同じ）`;
+}
+
+function updateFooterInfo() {
+  if (!appFooterEl) return;
+  const screenFont = firstFontName(getComputedStyle(document.documentElement).getPropertyValue("--font-body"));
+  document.body.classList.add("print-active");
+  const printFont = firstFontName(getComputedStyle(document.body).getPropertyValue("--p-font-body"));
+  document.body.classList.remove("print-active");
+
+  const section = (title, rows) =>
+    `<div class="footer-section"><div class="footer-section-title">${title}</div>` +
+    rows.map(([label, value]) => `<div>${label}：${value}</div>`).join("") +
+    `</div>`;
+
+  appFooterEl.innerHTML =
+    section("画面表示", [
+      ["本文", `${screenFont}・15px・1行37字`],
+      ["サイドバー", `${screenFont}・13px・1行18字`],
+      ["h1", `${screenFont}・${headingSizeLabel("h1", "15px")}`],
+      ["h2", `${screenFont}・${headingSizeLabel("h2", "15px")}`],
+      ["h3", `${screenFont}・${headingSizeLabel("h3", "15px")}`],
+    ]) +
+    section("PDF（サイドバーあり）", [
+      ["本文", `${printFont}・10.5pt・1行31字`],
+      ["サイドバー", `${printFont}・8.5pt・1行16字`],
+      ["h1", `${printFont}・${headingSizeLabel("h1", "10.5pt")}`],
+      ["h2", `${printFont}・${headingSizeLabel("h2", "10.5pt")}`],
+      ["h3", `${printFont}・${headingSizeLabel("h3", "10.5pt")}`],
+    ]) +
+    section("PDF（サイドバーなし）", [
+      ["本文", `${printFont}・12pt・1行37字`],
+      ["h1", `${printFont}・${headingSizeLabel("h1", "12pt")}`],
+      ["h2", `${printFont}・${headingSizeLabel("h2", "12pt")}`],
+      ["h3", `${printFont}・${headingSizeLabel("h3", "12pt")}`],
+    ]) +
+    `<div class="footer-section footer-section-note">全角1文字≒1em換算。見出しの実際の大きさは「項番設定（カスタマイズ）」の見出しスタイルで変えられます。</div>`;
 }
 themeGrid.querySelectorAll("[data-theme-id]").forEach((btn) => {
   btn.onclick = () => { applyTheme(btn.dataset.themeId); autoSaveDebounced(); };
@@ -1439,6 +1611,7 @@ function refreshNumberingSettingInputs() {
 // （data属性ではなくparaStyleSettings側が変わるため、単発のapplyParaStyles(paras)では拾えない）。
 function reapplyAllParaStyles() {
   applyParaStyles(Array.from(doc.querySelectorAll(".para:not(.para-opaque)")));
+  updateFooterInfo();   // 見出しスタイル設定の変更はページ最下部の目安表示にも反映する
 }
 Object.keys(styleSettingInputs).forEach((key) => {
   styleSettingInputs[key].size.oninput = () => {
@@ -1576,6 +1749,10 @@ document.getElementById("notePopoverAdd").onclick = () => {
   window.getSelection()?.removeAllRanges();
   renumberAndLayout();
   updatePlaceholder();
+  // "image"/"table"/"reply"はnotesByAnchorへのMap操作のみでDOMのinputイベントを伴わないため、
+  // ここで明示的に呼ぶ（他の種類は既にexecCommand経由/各addPdf*Note内で呼ばれているが、
+  // 二重に呼んでも自動保存はデバウンスされるだけなので無害）。
+  autoSaveDebounced();
 };
 
 // anchorId（一文のロック範囲、または画像・表）に1件コメントを積む（＝返信スレッドへの追加）。
@@ -1621,12 +1798,14 @@ function addTextNote(range, text, color) {
   const sel = window.getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
-  // execCommand('insertHTML')経由にすると、ノート追加もブラウザのundo履歴(Ctrl+Z)に乗る。
+  // execCommand('insertHTML')経由にすると、ノート追加も#docのinputイベントを発火し、
+  // autoSave経由の独自Undo/Redoの対象になる。
   document.execCommand && document.execCommand("insertHTML", false, html);
   if (zwsp) zwsp.remove();
   if (zwspEnd) zwspEnd.remove();
   if (!doc.querySelector(`[data-anchor-id="${anchorId}"]`)) {
-    // 本当に失敗した場合のみのフォールバック（この経路のみundo対象外）
+    // 本当に失敗した場合のみのフォールバック（ブラウザのネイティブundoには乗らないが、
+    // 独自のUndo/Redoはこの後のaddNoteToAnchor()を含めた状態全体を見るため問題ない）
     const anchor = document.createElement("span");
     anchor.className = "note-anchor";
     anchor.contentEditable = "false";
@@ -1697,6 +1876,27 @@ function insertTableBlock() {
   wrap.querySelector("th, td")?.focus();
 }
 insertTableBtn.onclick = insertTableBlock;
+
+// ---- 区切り線の挿入（書式ツールバーの「区切り線」。画像・表と同じ「現在の段落の直後に置く」方式） ----
+// Markdownの「---」貼り付け/取り込みで作られるものと同じ.para-hrブロック（buildHrParaEl）を使う。
+// 削除は挿入済みの区切り線にマウスを乗せた時に出る×ボタン（bindHrParaEvents）で行う（画像・表と同じ）。
+function insertHrBlock() {
+  const wrap = buildHrParaEl("hr" + hrIdSeq++);
+  const afterEl = getCurrentParaOrLast();
+  if (afterEl && afterEl.parentElement === doc) afterEl.insertAdjacentElement("afterend", wrap);
+  else doc.appendChild(wrap);
+  if (!wrap.nextElementSibling) {
+    const trailingPara = document.createElement("div");
+    trailingPara.className = "para";
+    trailingPara.innerHTML = "<br>";
+    wrap.insertAdjacentElement("afterend", trailingPara);
+  }
+  bindHrParaEvents(wrap);
+  updatePlaceholder();
+  renumberAndLayout();
+  autoSaveDebounced();
+}
+insertHrBtn.onclick = insertHrBlock;
 
 function buildImageParaEl(paraId, src) {
   const wrap = document.createElement("div");
@@ -1994,6 +2194,7 @@ function importMarkdownBlocks(blocks) {
   renumberAndLayout();
   updatePlaceholder();
   autoSaveDebounced();
+  initUndoHistory();   // 本文を丸ごと置き換える＝別の文書を開いた扱いなので、履歴もリセットする
 }
 
 // blocksをカーソルのある段落の直後へ挿入する（既にある本文・サイドノートは残す）。
@@ -2029,11 +2230,13 @@ function insertMarkdownBlocks(blocks) {
 }
 
 // Markdown全文を取り込んで本文を丸ごと置き換える（「開く」で.jsonを開く時と同じ「全置換」の考え方）。
-// 先頭がH1見出しならタイトル欄へ、無ければfallbackTitle（ファイル名など）を使う。
+// タイトル欄（＝保存時のファイル名）は常にfallbackTitle（実際に開いたファイル名）を使う。
+// 先頭のH1見出しは本文とは別物の可能性がある（ファイル名と見出しが一致しないmdファイルもあるため）
+// ので、タイトル欄には取り込まず、そのまま本文の見出しとして残す。
 function importMarkdownText(text, fallbackTitle) {
   if (!window.MdParser) { setStatus("Markdownパーサーの読み込みに失敗しました。"); return; }
-  const { title, blocks } = MdParser.parseMarkdownDocument(text);
-  titleInput.value = title || fallbackTitle || "";
+  const blocks = MdParser.parseMarkdownBlocks(text);
+  titleInput.value = fallbackTitle || "";
   importMarkdownBlocks(blocks);
   setStatus(`Markdownを取り込みました（${blocks.length}ブロック）。`);
 }
@@ -2169,8 +2372,8 @@ function copyPendingTargetText() {
 }
 
 // #doc側のフォーカスと選択範囲を、選択時点で保存したRangeへ戻した上でcopy/cut/deleteを実行する。
-// execCommand経由にすることで、#docのinputイベント（renumberAndLayout・自動保存）と
-// ブラウザのネイティブundo（Ctrl+Z）の対象に自然に乗る（段落挿入と同じ考え方）。
+// execCommand経由にすることで、#docのinputイベント（renumberAndLayout・自動保存・
+// それに相乗りする独自Undo/Redoの記録）に自然に乗る（段落挿入と同じ考え方）。
 // {preventScroll:true}が無いと、長い文書の下の方で操作した時にfocus()の既定動作で
 // #doc（本文全体を包む1つの巨大なcontenteditable）の先頭が画面内に来るようスクロールされてしまい、
 // 文書の先頭へ戻ったように見えてしまう。
@@ -2207,7 +2410,8 @@ doc.addEventListener("keydown", (e) => {
     sel.addRange(r);
     return;
   }
-  // Ctrl+Zはここでは何も処理しない＝ブラウザのネイティブundoにそのまま任せる。
+  // Ctrl+Z/Ctrl+Yはここでは何も処理しない＝document.addEventListener("keydown", ...)側の
+  // 独自Undo/Redo（initUndoHistory等）が拾う（本文はブラウザのネイティブundoの対象にはしない）。
 });
 
 // Enterで新しい.paraを作る。見出し・引用等の途中でEnterしても常にプレーンな段落が続く
@@ -2227,9 +2431,9 @@ function insertNewParagraph() {
   //   ・段落の途中にカーソルを置いてEnterで割ると「前半／余分な空段落／後半」の3つになる
   //     （同日、上の修正時に発覚した別バグ）
   // という不具合があったため、この2パターン（段落が空、またはカーソルより後ろに何か残っている）
-  // だけは自前のRange操作で確実に2つに割る（Ctrl+Zの対象にはならない＝画像挿入と同じ既知の
-  // 制約として許容する）。カーソルが段落の末尾にあるだけの最も多い操作は、これまで通り
-  // execCommand経由でundoできるようにする。
+  // だけは自前のRange操作で確実に2つに割る（ブラウザのネイティブundoの対象にはならないが、
+  // 独自のUndo/Redoは対象にするため下でinputイベントを手動発火してautoSave経由の記録に乗せる）。
+  // カーソルが段落の末尾にあるだけの最も多い操作は、これまで通りexecCommand経由で処理する。
   const currentPara = getCurrentPara();
   if (currentPara && range.collapsed) {
     const tailRange = document.createRange();
@@ -2519,7 +2723,8 @@ function toggleOrderedList() {
 }
 orderedListBtn.onclick = toggleOrderedList;
 
-// 太字・下線は選択した文字へ（execCommand経由＝Ctrl+Zのundo対象にもなる）。
+// 太字・下線は選択した文字へ（execCommand経由＝#docのinputイベントを発火し、autoSave経由の
+// 独自Undo/Redoの対象にもなる）。
 // 選択が折りたたまれている（カーソルだけ）場合はブラウザ標準の挙動として、以後タイプする文字に適用される。
 function applyInlineFormat(cmd) {
   const sel = window.getSelection();
@@ -2536,7 +2741,8 @@ underlineBtn.onclick = () => applyInlineFormat("underline");
 
 // 傍点は太字・下線と違いブラウザ標準のexecCommandが無いため、note-anchor（範囲選択→ロック）と
 // 同じ考え方の自前実装にする：選択範囲を<span class="kenten">で囲む（execCommand("insertHTML")
-// 経由でCtrl+Zのundo対象にする）。既に選択範囲がまるごと1つの.kentenと一致する場合は解除する
+// 経由で#docのinputイベントを発火させ、autoSave経由の独自Undo/Redoの対象にする）。
+// 既に選択範囲がまるごと1つの.kentenと一致する場合は解除する
 // （removeNoteFromAnchor()の「注釈を外して原文を書き戻す」と同じ手順）。
 // 太字・下線と違い「以後の入力に適用」は持たない（execCommandの標準機能ではないため）ので、
 // 範囲選択が無い（カーソルだけの）場合は何もしない。
@@ -2978,6 +3184,9 @@ async function renderPdfFromDataUrl(dataUrl, savedAnchors) {
 
   if (savedAnchors && savedAnchors.length) rebuildPdfAnchors(savedAnchors);
   renumberAndLayout();
+  // PDFを（新規に、または保存済みプロジェクトから）開く経路はここに必ず集約されるため、
+  // Undo/Redoの履歴もここでリセットする（前の文書の状態へ戻ろうとしてしまわないように）。
+  initUndoHistory();
 }
 
 // 1ページぶんの canvas（描画）＋テキストレイヤー（選択可能なテキストがあれば）＋
@@ -3286,3 +3495,8 @@ function buildPrintDocPdf() {
 
   void printDocEl.offsetHeight;   // buildPrintDoc()と同じ強制リフロー（float混在時の描画抜け対策の踏襲）
 }
+
+// Undo/Redo履歴の初回セット。ここ（ファイル最後）で呼ぶのは、serializeProject()がcurrentTheme等
+// このファイルの後半でlet宣言される変数も参照するため、それらの初期化が全て終わった後にする必要が
+// あるため（早い位置で呼ぶとTDZ（初期化前アクセス）のReferenceErrorになる）。
+initUndoHistory();
