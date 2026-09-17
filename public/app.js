@@ -2546,12 +2546,15 @@ function applyParaStyles(paras) {
   });
 }
 
-// Enterで段落を分けた直後は、直前の段落の配置・インデント・ぶら下げ・スタイル・文字サイズを引き継ぐ
+// Enterで段落を分けた直後は、直前の段落の配置・インデント・ぶら下げ・文字サイズを引き継ぐ
 // （準備書面等の番号付き項目を続けて書く時、行ごとに書式を付け直さずに済むようにするため）。
 // 太字・下線は文字への書式なので対象外（新しい行の頭は素の状態から始まる）。
+// スタイル（見出しH1〜H3）は引き継がない：見出しの途中でEnterしても常にプレーンな段落が続く、
+// というこのアプリの前提（下のinsertNewParagraph側のコメント参照）に合わせる
+// （2026-09、見出しボタンで付けた見出しだけEnter後も見出しのまま続いてしまう不具合を修正）。
 // 加えて、直前の段落が箇条書き（.para-li）だった場合はリストを継続する（下部参照）。
 function inheritParaFormat(fromPara, toPara) {
-  ["indentLevel", "hanging", "align", "style", "fontSizePt"].forEach((key) => {
+  ["indentLevel", "hanging", "align", "fontSizePt"].forEach((key) => {
     if (fromPara.dataset[key] !== undefined) toPara.dataset[key] = fromPara.dataset[key];
   });
   applyParaStyles([toPara]);

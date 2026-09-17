@@ -400,12 +400,14 @@ body {
 .para-hr { position: relative; margin: 1.6em 0; }
 .para-hr hr { border: none; border-top: 1px solid var(--rule); margin: 0; }
 .para-hr-del-btn {
+  /* 画像・表の削除ボタンと同じ「常時表示」にする。以前はhr:hoverでのみ表示していたが、
+     .para-hr自体のホバー判定域が<hr>の線の太さ(1px)ぶんしかなく、実質ホバーできず
+     削除ボタンが出せない不具合だったため（2026-09指摘）。 */
   position: absolute; right: -34px; top: 50%; transform: translateY(-50%);
   width: 26px; height: 26px; padding: 0; border: none; border-radius: 50%;
-  background: #eef0f3; color: #31333f; cursor: pointer; opacity: 0; transition: opacity .15s;
+  background: #eef0f3; color: #31333f; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
 }
-.para-hr:hover .para-hr-del-btn { opacity: 1; }
 .para-hr-del-btn:hover { background: var(--tx-bg-muted); color: var(--tx-text); }
 .para-hr-del-btn .icon { width: 12px; height: 12px; }
 
