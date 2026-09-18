@@ -156,7 +156,7 @@ html[data-theme="site"] .para-h2 {
   font-weight: 300;
   font-size: 1.6em;
   text-align: center;
-  margin-top: 3.2em;
+  margin-top: 4.8em;   /* 2026-09、上の余白を1.5倍にしてほしいとの指摘で3.2em→4.8emへ */
 }
 /* margin-bottomだけ、style.css側の.para:not(.para-opaque):not(.para-li){margin-bottom:.6em}
    （詳細度3）に勝つよう、同じ:not()の数で詳細度を合わせる。 */

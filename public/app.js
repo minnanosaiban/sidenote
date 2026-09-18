@@ -547,7 +547,11 @@ function docToMarkdown() {
 
   const lines = [];
   const title = projectTitle();
-  if (title) { lines.push(`# ${title}`); lines.push(""); }
+  // 本文の先頭が既に見出し（#…）なら、タイトル欄からの見出し行は付けない（2026-09、ファイル名欄が
+  // 実際のファイル名になった後もMarkdown取り込み時の先頭見出しをそのまま本文に残すようにしたため、
+  // 両方付けると書き出したファイルで#が2重になっていた指摘を受けて修正）。
+  const bodyStartsWithHeading = blocks[0] && blocks[0].type === "heading";
+  if (title && !bodyStartsWithHeading) { lines.push(`# ${title}`); lines.push(""); }
 
   blocks.forEach((b, i) => {
     lines.push(b.text);
