@@ -133,10 +133,14 @@ const FONT_SIZE_DEFAULT_PT = 12;   // 「既定」から＋／−を押した時
 // 太さともに素のまま）。各見出しの実際の見た目（文字サイズpt・太字）は「項番設定」パネルで
 // 文書ごとに変えられる設定（paraStyleSettings、下のDEFAULT_PARA_STYLE_SETTINGSが初期値）にした。
 // fontSizePtがnull＝本文と同じ文字サイズのまま太字だけ変える、という指定にも対応する。
+// 2026-09、H2・H3の既定がfontSizePt:null（＝本文と同じ大きさのまま太字だけ）だと、太字ボタンを
+// 押しただけの見た目と紛らわしく「見出しにしたのに小さい」という指摘を繰り返し受けたため、
+// 既定から本文より一段階ずつ大きくする（H1=16pt > H2=14pt > H3=13pt > 本文12pt）。
+// 元の「本文と同じ」挙動が欲しい場合は「項番設定（カスタマイズ）」の文字サイズを空欄にすれば戻る。
 const DEFAULT_PARA_STYLE_SETTINGS = {
   h1: { fontSizePt: 16, bold: false },
-  h2: { fontSizePt: null, bold: true },
-  h3: { fontSizePt: null, bold: true },
+  h2: { fontSizePt: 14, bold: true },
+  h3: { fontSizePt: 13, bold: true },
 };
 let paraStyleSettings = JSON.parse(JSON.stringify(DEFAULT_PARA_STYLE_SETTINGS));
 
@@ -1531,12 +1535,30 @@ function headingSizeLabel(styleKey, bodySizeLabel) {
   return s && s.fontSizePt ? `${s.fontSizePt}pt` : `${bodySizeLabel}（本文と同じ）`;
 }
 
+// Markdown取り込みが付ける.para-h2クラス側の上部余白（画面のみ・デザインごとに異なる。
+// 印刷はどのデザインでも.print-h1〜h3を含め常にmargin:0 0 .6emで統一しており見出し独自の
+// 上部余白を持たないため、画面表示の行にだけ添える）。ツールバーの見出しボタン（data-style、
+// クラス無し）にはこの上部余白は乗らないため、あくまで「Markdownの##見出しを取り込んだ場合」の
+// 目安。一時的に非表示のプローブ要素を作って実測し、フォント名と同様デザイン切り替え時に測り直す。
+function probeHeadingMarginTopEm(level) {
+  const probe = document.createElement("div");
+  probe.className = `para para-h${level}`;
+  probe.style.cssText = "position:absolute;visibility:hidden;pointer-events:none;left:0;top:0;";
+  doc.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const marginPx = parseFloat(cs.marginTop);
+  const fontPx = parseFloat(cs.fontSize);
+  probe.remove();
+  return fontPx ? marginPx / fontPx : 0;
+}
+
 function updateFooterInfo() {
   if (!appFooterEl) return;
   const screenFont = firstFontName(getComputedStyle(document.documentElement).getPropertyValue("--font-body"));
   document.body.classList.add("print-active");
   const printFont = firstFontName(getComputedStyle(document.body).getPropertyValue("--p-font-body"));
   document.body.classList.remove("print-active");
+  const h2MarginTopEm = Math.round(probeHeadingMarginTopEm(2) * 10) / 10;
 
   const section = (title, rows) =>
     `<div class="footer-section"><div class="footer-section-title">${title}</div>` +
@@ -1548,7 +1570,7 @@ function updateFooterInfo() {
       ["本文", `${screenFont}・15px・1行37字`],
       ["サイドバー", `${screenFont}・13px・1行18字`],
       ["h1", `${screenFont}・${headingSizeLabel("h1", "15px")}`],
-      ["h2", `${screenFont}・${headingSizeLabel("h2", "15px")}`],
+      ["h2", `${screenFont}・${headingSizeLabel("h2", "15px")}・上部余白${h2MarginTopEm}em（Markdown取り込み時）`],
       ["h3", `${screenFont}・${headingSizeLabel("h3", "15px")}`],
     ]) +
     section("PDF（サイドバーあり）", [
