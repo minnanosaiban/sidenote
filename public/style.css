@@ -322,6 +322,13 @@ body {
 .para-h2 { font-weight: 700; font-size: 1.32em; line-height: 1.4; margin-top: 1.1em; }
 .para-h3 { font-weight: 600; font-size: 1.1em; line-height: 1.5; margin-top: .9em; }
 .para-h4, .para-h5, .para-h6 { font-weight: 600; font-size: 1em; line-height: 1.6; margin-top: .8em; }
+/* 見出しが文書の一番先頭に来た時は、上の余白（他の段落から離すためのmargin-top）を付けない
+   （H1はファイル名欄に割り当てる運用のため、本文の実質的な先頭見出しはH2になることが多い。
+   2026-09、H2が先頭の時に上の余白が本文の他の段落より大きく空いて見えるという指摘で追加）。 */
+#doc > .para-h1:first-child, #doc > .para-h2:first-child, #doc > .para-h3:first-child,
+#doc > .para-h4:first-child, #doc > .para-h5:first-child, #doc > .para-h6:first-child {
+  margin-top: 0;
+}
 
 .para-quote { border-left: 3px solid var(--accent); padding-left: 1em; color: var(--ink); }
 
