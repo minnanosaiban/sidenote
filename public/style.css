@@ -580,8 +580,9 @@ body.print-active #printDoc sup { font-size: .75em; color: #666; }
 body.print-active #printDoc a { color: var(--p-accent, #ff4b4b); }
 
 /* サイドノートが1件も無い文書（buildPrintDoc()がbodyに付ける.no-sidenoteクラス）は、右の48mm欄を
-   使わないぶん本文を大きく・広く組む（12pt・1行37字＝画面表示と同じ文字数）。
-   156.6mm = 37字 × 12pt（CJKフォントは全角1文字≒1emという画面側と同じ近似）。
+   使わないぶん本文を大きく・広く組む（12pt）。幅は@page（A4・余白20mm＝2cm、上のルール参照）で
+   実際に残る幅そのまま：210mm − 20mm×2 = 170mm（2026-09、以前は1行37字という文字数を先に決めて
+   逆算したmm値(156.6mm)を使っていたが、2cm余白の残り幅に合わせて改行する方針に変更）。
    widthはemではなくこの固定mm値を使う：見出し・コードは本文と異なるfont-sizeを持つため、
    emのまま指定すると要素ごとに幅がバラついてしまう（本文と揃った1本の段組みにするため）。 */
 body.print-active.no-sidenote #printDoc { font-size: 12pt; }
@@ -591,9 +592,9 @@ body.print-active.no-sidenote .print-h3, body.print-active.no-sidenote .print-h4
 body.print-active.no-sidenote .print-h5, body.print-active.no-sidenote .print-h6,
 body.print-active.no-sidenote .print-quote, body.print-active.no-sidenote .print-code,
 body.print-active.no-sidenote .print-table, body.print-active.no-sidenote .print-hr {
-  width: 156.6mm;
+  width: 170mm;
 }
-body.print-active.no-sidenote .print-img { width: 156.6mm; max-width: 156.6mm; }
+body.print-active.no-sidenote .print-img { width: 170mm; max-width: 170mm; }
 
 /* ============================================================
    ここから下は sidenote-pdf（PDFに直接注釈）／sidenote-pdf-doc（書面レイアウト）を
@@ -649,14 +650,17 @@ body.print-active.no-sidenote .print-img { width: 156.6mm; max-width: 156.6mm; }
   cursor: pointer; white-space: nowrap;
 }
 .fmt-md-toggle input { flex: none; }
-/* オン時：.md書き出しに反映されない書式（配置・インデント・ぶら下げ・文字サイズ）のラベル文字と、
-   サイドノート欄をグレーアウトする。ボタン自体の見た目はapp.js側でdisabled=trueにして
-   既存の.fmt-btn:disabledに任せる（傍点ボタンもここで一緒にグレーになる）。 */
+/* オン時：.md書き出しに反映されない書式（配置・インデント・ぶら下げ・文字サイズ）のラベル文字を
+   グレーアウトする。ボタン自体の見た目はapp.js側でdisabled=trueにして既存の.fmt-btn:disabledに
+   任せる（傍点ボタンもここで一緒にグレーになる）。 */
 body.markdown-mode-active .fmt-unit-mdoff > .fmt-group-label,
 body.markdown-mode-active .fmt-unit-mdoff .fmt-label {
   opacity: .45;
 }
-body.markdown-mode-active .doc-right-col { opacity: .45; pointer-events: none; }
+/* サイドノート欄自体はMarkdownモード中は追加できず（.md書き出しにも反映されない）、
+   グレーアウト表示のままだと使えない欄が常に目に入って邪魔だったため非表示にする
+   （2026-09、指摘を受けて.doc-leftはflex:1 1 autoなのでこの分だけ自動で広がる）。 */
+body.markdown-mode-active .doc-right-col { display: none; }
 
 /* 傍点（強調の圏点）。execCommandに対応が無い書式のため独自のspan(.kenten)に持たせ、
    画面(#doc)・印刷(#printDoc)の両方に同じルールを当てる（印刷側の複製はbuildPrintNode参照）。

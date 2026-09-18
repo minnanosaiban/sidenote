@@ -1581,7 +1581,7 @@ function updateFooterInfo() {
       ["h3", `${printFont}・${headingSizeLabel("h3", "10.5pt")}`],
     ]) +
     section("PDF（サイドバーなし）", [
-      ["本文", `${printFont}・12pt・1行37字`],
+      ["本文", `${printFont}・12pt・1行40字（2cm余白の残り幅で改行）`],
       ["h1", `${printFont}・${headingSizeLabel("h1", "12pt")}`],
       ["h2", `${printFont}・${headingSizeLabel("h2", "12pt")}`],
       ["h3", `${printFont}・${headingSizeLabel("h3", "12pt")}`],
