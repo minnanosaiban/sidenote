@@ -1498,7 +1498,7 @@ const THEMES = [
   { id: "minimal", label: "文書（ミニマル）", desc: "公文書仕様に近い白黒" },
   { id: "flat", label: "フラット", desc: "カード区切りのSaaS系" },
   { id: "dark", label: "ダークUI", desc: "分析ツール風・集中読解" },
-  { id: "wamodan", label: "和モダン", desc: "墨と紺、装飾ゼロ" },
+  { id: "wamodan", label: "和モダン", desc: "エディトリアルより余白広め" },
   { id: "site", label: "サイト", desc: "紺×朱、公開サイトの配色" },
   { id: "notebook", label: "ノート", desc: "丸みと暖色、個人メモの柔らかさ" },
 ];

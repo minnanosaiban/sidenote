@@ -115,19 +115,23 @@ html[data-theme="dark"] {
   --font-mono: 'JetBrains Mono', monospace;
 }
 
-/* ⑤ 和モダン：墨と紺、装飾ゼロの静けさ。 */
+/* ⑤ 和モダン：色・フォントはエディトリアル（雑誌風）と同じにし、余白の取り方だけで差を付ける
+   （2026-09、エディトリアルと見分けにくいという指摘を受けて変更。以前は墨と紺の配色だった）。
+   H2の上の余白を広めに、段落の下は1行ぶんの余白を空けて、よりゆったりした組版にする。 */
 html[data-theme="wamodan"] {
   --paper: #f4f5f7;
-  --ink: #2b2a28;
-  --muted: #83786a;
-  --accent: #223a5e;
-  --rule: #ded5c3;
-  --surface: transparent;
+  --ink: #211f1c;
+  --muted: #7a766e;
+  --accent: #3f5142;
+  --rule: #d9d7d0;
+  --surface: #ffffff;
   --radius: 0px;
   --font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
-  --font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
+  --font-body: 'Noto Serif JP', serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
+html[data-theme="wamodan"] .para-h2 { margin-top: 3em; }
+html[data-theme="wamodan"] .para:not(.para-opaque):not(.para-li) { margin-bottom: 2em; }
 
 /* ⑥ サイト：本サイト（minnanosaiban.github.io/hotline）のデザイントークン（紺のリンク色・
    朱のアクセント・薄い青灰色の面）をそのまま流用し、公開サイトと地続きの見た目にする。
@@ -214,8 +218,8 @@ html[data-theme="dark"] body.print-active {
 }
 html[data-theme="wamodan"] body.print-active {
   --p-font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
-  --p-font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
-  --p-accent: #223a5e;
+  --p-font-body: 'Noto Serif JP', serif;
+  --p-accent: #3f5142;
 }
 html[data-theme="site"] body.print-active {
   --p-font-head: 'Noto Sans JP', sans-serif;
