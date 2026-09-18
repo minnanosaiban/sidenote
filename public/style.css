@@ -344,7 +344,11 @@ body {
 .para-li { padding-left: 1em; text-indent: -1em; }
 .para-li[data-indent-level="1"] { padding-left: 2em; }
 .para-li[data-indent-level="2"] { padding-left: 3em; }
-.li-marker { color: var(--muted); user-select: none; }
+/* display:inline-block + min-width:1emで、マーカー（「• 」等）の実際の幅をぶら下げインデント幅
+   （.para-liのpadding-left:1em/text-indent:-1em）に合わせる。付けないと「• 」の実測幅が1emより
+   狭く、1行目の本文だけ折り返し2行目より数px左に寄って見える（2026-09、箇条書きの行揃えが
+   微妙にずれるという指摘で追加。番号付き（「12. 」等）は元から1em超のため影響しない）。 */
+.li-marker { display: inline-block; min-width: 1em; color: var(--muted); user-select: none; }
 
 /* ── 段落ホバー時の「＋画像」「×削除」（JIMDO的なブロック単位の操作） ──
    #docの外側の要素なので、位置は.doc-left基準の絶対座標（JSがtopだけ合わせる）。 */
