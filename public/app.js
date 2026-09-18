@@ -253,6 +253,45 @@ function formatNoteText(raw) {
 
 const escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+// ---- .jsonのdocHTML（本文を丸ごと保存/復元する値）の無害化 ----
+// .jsonは「保存の続き」だけでなく、README記載の通り共有相手とやり取りする双方向のファイル形式でもある。
+// テキストエディタで自由に書き換えられる以上、docHTMLの中身は信用できない外部入力として扱う必要がある
+// （相手から届いた.jsonのdocHTMLに<img src=x onerror="...">等を仕込まれ、「開く」を押した瞬間に
+// このオリジン上で任意JSが実行される＝XSS。2026-09発見）。
+// Markdown取り込み・貼り付け・表セルはMdParser.inlineToHtml／escapeHtml経由でHTMLエスケープ＋許可タグ
+// のみ通す作りだが、docHTML（＝#doc.innerHTMLの丸ごと保存/復元）だけはこれまでノーチェックで
+// innerHTMLへ差し戻していたため、ここだけこの対策が必要になる。
+// DOMPurify（vendor/dompurify、Apache License 2.0 / MPL 2.0。THIRD_PARTY_NOTICES.md参照）で、
+// このアプリ自身が実際に組み立てるタグ・属性だけを許可するアローリストとして無害化する
+// （画像・表・区切り線ブロックの「＋ノート」「×」ボタンとそのSVGアイコンも#doc内の実DOMなので対象に含む。
+// 削らないと再読み込み後にbindImageParaEvents等のquerySelectorがnullになりTypeErrorで初期化が止まる）。
+const DOC_HTML_ALLOWED_TAGS = [
+  "div", "span", "sup", "b", "u", "strong", "em", "i", "del", "code", "a", "br",
+  "table", "thead", "tbody", "tr", "th", "td", "img", "hr", "button", "svg", "path",
+];
+const DOC_HTML_ALLOWED_ATTR = [
+  "class", "contenteditable", "style", "href", "target", "rel", "src", "alt", "title", "type",
+  "xmlns", "viewbox", "fill", "aria-hidden", "d",
+];
+// http(s)・mailto・ページ内相対リンクに加え、画像挿入／貼り付けが使うdata:image/...;base64,のみ許可する
+// （isSafeUrl()と同じ考え方をURIの許可判定にも適用。javascript:・data:text/html等はこの正規表現に
+// マッチせず、DOMPurifyが自動的にその属性ごと除去する）。
+const DOC_HTML_ALLOWED_URI = /^(?:(?:https?|mailto):|data:image\/[a-z0-9.+-]+;base64,|[^a-z:]|[a-z][a-z0-9+.-]*(?:[^a-z0-9+.-:]|$))/i;
+
+function sanitizeDocHtml(html) {
+  if (typeof window.DOMPurify === "undefined") {
+    // 同梱のvendor/dompurifyが何らかの理由で読み込めていない場合、無害化できないまま
+    // innerHTMLへ入れる（＝対策が効かない）よりは読み込みそのものを拒否する方が安全（フェイルクローズ）。
+    throw new Error("サニタイズ用ライブラリの読み込みに失敗しました。ページを再読み込みしてから、もう一度お試しください。");
+  }
+  return window.DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: DOC_HTML_ALLOWED_TAGS,
+    ALLOWED_ATTR: DOC_HTML_ALLOWED_ATTR,
+    ALLOWED_URI_REGEXP: DOC_HTML_ALLOWED_URI,
+    ALLOW_DATA_ATTR: true,   // data-anchor-id・data-para-id等、段落の状態を持たせるdata-*属性一式
+  });
+}
+
 // 選択範囲がロック済み注釈（.note-anchor）やオペーク型ブロック（画像・表・水平線）にかかっていないか確認する。
 // 原文の改変を防ぐため、これらをまたぐ選択には太字/下線もノート追加も適用しない。
 function rangeOverlapsLockedAnchor(range) {
@@ -398,7 +437,7 @@ async function applyProjectData(data) {
 
   if (typeof data.docHTML !== "string") throw new Error("invalid project data");
   setMode("text");
-  doc.innerHTML = data.docHTML;
+  doc.innerHTML = sanitizeDocHtml(data.docHTML);
   notesByAnchor.clear();
 
   if (Array.isArray(data.notesByAnchor)) {

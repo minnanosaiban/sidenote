@@ -430,6 +430,9 @@ try {
 <script src="md-parser.js?v=3"></script>
 <!-- .docx書き出し用（同梱ライブラリ。THIRD_PARTY_NOTICES.md参照）。app.js内ではグローバルdocxとして参照する。 -->
 <script src="vendor/docx/docx.umd.js"></script>
-<script src="app.js?v=25"></script>
+<!-- .jsonのdocHTML（共有相手から届いたファイルの可能性がある本文HTML）を無害化するため（同梱ライブラリ。
+     THIRD_PARTY_NOTICES.md参照）。app.js側ではグローバルDOMPurifyとして参照する（sanitizeDocHtml参照）。 -->
+<script src="vendor/dompurify/purify.min.js"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>
