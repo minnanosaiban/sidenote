@@ -657,10 +657,13 @@ body.markdown-mode-active .fmt-unit-mdoff > .fmt-group-label,
 body.markdown-mode-active .fmt-unit-mdoff .fmt-label {
   opacity: .45;
 }
-/* サイドノート欄自体はMarkdownモード中は追加できず（.md書き出しにも反映されない）、
-   グレーアウト表示のままだと使えない欄が常に目に入って邪魔だったため非表示にする
-   （2026-09、指摘を受けて.doc-leftはflex:1 1 autoなのでこの分だけ自動で広がる）。 */
-body.markdown-mode-active .doc-right-col { display: none; }
+body.markdown-mode-active .doc-right-col { opacity: .45; pointer-events: none; }
+/* 画像・表ブロック自身の「＋ ノート」ボタンも、Markdownモード中はサイドノート欄と同じ理由
+   （追加できない・.md書き出しに反映されない）で表示しない（2026-09、指摘を受けて追加）。 */
+body.markdown-mode-active .para-image-note-btn,
+body.markdown-mode-active .para-table-note-btn {
+  display: none;
+}
 
 /* 傍点（強調の圏点）。execCommandに対応が無い書式のため独自のspan(.kenten)に持たせ、
    画面(#doc)・印刷(#printDoc)の両方に同じルールを当てる（印刷側の複製はbuildPrintNode参照）。
