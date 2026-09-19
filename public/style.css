@@ -452,6 +452,18 @@ body.markdown-mode-active {
 .para-hr-del-btn:hover { background: var(--tx-bg-muted); color: var(--tx-text); }
 .para-hr-del-btn .icon { width: 12px; height: 12px; }
 
+/* ── 改ページブロック（Markdownの改ページ＝HTMLコメントpagebreakの1行。Wordの改ページ相当） ──
+   画面では区切りの目印（点線と「改ページ」の文字）を出すだけで、実際にページを分けるのはPDF化（印刷）と
+   Word書き出しの時。削除の×ボタンは区切り線のもの（.para-hr-del-btn）をそのまま使う。 */
+.para-pagebreak { position: relative; margin: 1.6em 0; }
+.para-pagebreak-mark {
+  display: flex; align-items: center; gap: .9em; color: var(--muted);
+  font-size: 12px; line-height: 1; user-select: none;
+}
+.para-pagebreak-mark::before, .para-pagebreak-mark::after {
+  content: ""; flex: 1; border-top: 1px dashed var(--muted); opacity: .55;
+}
+
 /* 1つの注釈対象（一文・画像・表）に複数のコメント（自分・共有相手の返信）が並ぶことがあるため、
    カード全体で1つの通し番号を持ち、その中に複数行（.sidenote-entry）を積む構成にする。 */
 .sidenote-card {
@@ -573,6 +585,13 @@ body.print-active .print-h1 { font-size: 14.5pt; }
 body.print-active .print-h2 { font-size: 12.5pt; }
 body.print-active .print-h3 { font-size: 11pt; }
 body.print-active .print-h4, body.print-active .print-h5, body.print-active .print-h6 { font-size: 10.5pt; }
+/* 見出しだけがページの最後に取り残され、本文が次のページから始まる状態を避ける（見出しは次の段落と同じ
+   ページに置く）。図の直後の見出しの上余白が効くようになった（下の.print-clear）ことで、見出しだけがちょうど
+   ページ末に収まるケースが表に出たため追加（2026-09）。 */
+body.print-active .print-h1, body.print-active .print-h2, body.print-active .print-h3,
+body.print-active .print-h4, body.print-active .print-h5, body.print-active .print-h6 {
+  break-after: avoid; page-break-after: avoid;
+}
 body.print-active .print-quote {
   border-left: 1.5pt solid var(--p-accent, #ff4b4b); padding-left: 8pt; font-family: var(--p-font-body, inherit);
 }
@@ -592,6 +611,20 @@ body.print-active .print-table {
 body.print-active .print-table th, body.print-active .print-table td { padding: 4pt 6pt; border-bottom: .5pt solid #999; text-align: left; }
 body.print-active .print-table th { font-weight: 700; }
 body.print-active .print-hr { width: 115mm; float: left; clear: both; border: none; border-top: .5pt solid #999; margin: 10pt 0; }
+/* 上の画像・表・区切り線はfloat:left（右隣にサイドノートを並べるため）。floatの直後に来る見出しは、上の余白
+   （margin-top）がfloatの高さに吸収されて消え、図の直下に見出しが密着していた（2026-09指摘：PDFで
+   「６」の見出しの上が詰まる。テーマの--h2-beforeをいくら大きくしても直らない）。buildPrintDoc()が
+   floatの直後（サイドノートがあればその後ろ）に置くこの高さ0の要素でfloatを抜けてから次のブロックを
+   始めるので、見出しの上の余白が普通のブロックと同じように効く（ページ先頭に来た時に自然に切り捨てられる
+   挙動もそのまま）。display:flow-rootは、空の要素の上下の余白が次のブロックの余白と突き抜けて合流する
+   のを防ぐ（合流すると、やはりfloatに吸収される）。clearはleftだけにして、右のfloat（.print-aside）は
+   待たない（長い注釈のぶん余白が空く不具合を避けるため。上の「clearは意図的に付けない」の説明を参照）。 */
+body.print-active .print-clear { clear: left; display: flow-root; height: 0; margin: 0; padding: 0; border: 0; }
+/* 改ページ（Markdownの改ページ＝HTMLコメントpagebreakの1行）。ここから次のブロックは必ず次のページの先頭から
+   始まる。高さ0の空要素のbreak-after（旧名page-break-after）で分ける。clear:bothは、直前の画像・表のfloatや
+   長いサイドノートがまだ続いている位置で分けて、floatが次のページへ取り残されるのを防ぐため。次のページの先頭に
+   来たブロックの上余白は、ページ先頭の通常の挙動で自然に切り捨てられる。 */
+body.print-active .print-pagebreak { clear: both; height: 0; margin: 0; padding: 0; border: 0; break-after: page; page-break-after: always; }
 body.print-active .print-aside {
   width: 48mm; float: right; clear: right; margin: 0 0 8pt; font-size: 8.5pt; line-height: 1.6; color: #333;
   /* 出典のURLのように区切りの無い長い文字列は、そのままだと48mmの枠からはみ出して印刷時に途中で切れる。
@@ -665,6 +698,15 @@ body.print-active.markdown-mode-active .print-title + .print-h3,
 body.print-active.markdown-mode-active .print-title + .print-h4,
 body.print-active.markdown-mode-active .print-title + .print-h5,
 body.print-active.markdown-mode-active .print-title + .print-h6 { margin-top: 0; }
+/* 改ページ（.print-pagebreak）の直後の見出しも、文書の先頭と同じく上の余白を付けない。改ページで前のページと
+   切り離された、新しいページの先頭に、見出し用の余白ぶんの空きが残らないようにする（強制の改ページの直後は、
+   ブラウザが上の余白を自動で切り捨てないため、ここで明示する）。 */
+body.print-active.markdown-mode-active .print-pagebreak + .print-h1,
+body.print-active.markdown-mode-active .print-pagebreak + .print-h2,
+body.print-active.markdown-mode-active .print-pagebreak + .print-h3,
+body.print-active.markdown-mode-active .print-pagebreak + .print-h4,
+body.print-active.markdown-mode-active .print-pagebreak + .print-h5,
+body.print-active.markdown-mode-active .print-pagebreak + .print-h6 { margin-top: 0; }
 
 /* ============================================================
    ここから下は sidenote-pdf（PDFに直接注釈）／sidenote-pdf-doc（書面レイアウト）を

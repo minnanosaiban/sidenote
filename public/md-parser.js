@@ -97,9 +97,13 @@ const RE_QUOTE = /^\s*>\s?(.*)$/;
 const RE_LIST = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
 const RE_IMAGE_LINE = /^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)\s*$/;
 const RE_CODE_FENCE = /^```(.*)$/;
+// 改ページの目印。Markdownに改ページの標準記法は無いので、他のビューアでは何も表示されないHTMLコメント
+// （pagebreak）を1行だけ書く形にする。大文字小文字・前後の空白は問わない。ツールの「MDで書き出す」も
+// 同じ1行を書き出す（2026-09）。
+const RE_PAGEBREAK = /^\s*<!--\s*pagebreak\s*-->\s*$/i;
 
 // ---- ブロック分割（1文書 → ブロックの配列） ----
-// 各ブロック: { type: "heading"|"paragraph"|"blockquote"|"hr"|"li"|"table"|"code"|"image", ... }
+// 各ブロック: { type: "heading"|"paragraph"|"blockquote"|"hr"|"li"|"table"|"code"|"image"|"pagebreak", ... }
 function parseMarkdownBlocks(text) {
   const lines = String(text).replace(/\r\n?/g, "\n").split("\n");
   const blocks = [];
@@ -125,6 +129,12 @@ function parseMarkdownBlocks(text) {
     // 見出し
     if ((m = line.match(RE_HEADING))) {
       blocks.push({ type: "heading", level: m[1].length, text: m[2].trim() });
+      i++; continue;
+    }
+
+    // 改ページ（HTMLコメントpagebreakだけの1行）。他のどの構文とも紛れないので、見出しの直後に判定する。
+    if (RE_PAGEBREAK.test(line)) {
+      blocks.push({ type: "pagebreak" });
       i++; continue;
     }
 
@@ -190,7 +200,7 @@ function parseMarkdownBlocks(text) {
     const paraLines = [line];
     i++;
     while (i < lines.length && lines[i].trim() !== "" &&
-      !RE_HEADING.test(lines[i]) && !RE_QUOTE.test(lines[i]) && !RE_HR.test(lines[i]) &&
+      !RE_HEADING.test(lines[i]) && !RE_QUOTE.test(lines[i]) && !RE_HR.test(lines[i]) && !RE_PAGEBREAK.test(lines[i]) &&
       !RE_LIST.test(lines[i]) && !RE_CODE_FENCE.test(lines[i]) && !RE_IMAGE_LINE.test(lines[i]) &&
       !(lines[i].includes("|") && i + 1 < lines.length && isTableSeparatorRow(lines[i + 1]))) {
       paraLines.push(lines[i]);

@@ -133,7 +133,7 @@ html[data-theme="wamodan"] {
 /* 余白はstyle.cssの変数（--h2-before／--gap-after）の書き換えで指定する（画面だけでなく、
    Markdownモード時の印刷もこの値を使うため。style.cssの:root参照）。 */
 html[data-theme="wamodan"] {
-  --h2-before: 3em;
+  --h2-before: 6.4em;   /* 2026-09、H2の上をさらに広げる指定を受けて3em→6.4emへ */
   --gap-after: 2em;
 }
 

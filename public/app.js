@@ -67,6 +67,7 @@ const bulletListBtn = document.getElementById("bulletListBtn");
 const orderedListBtn = document.getElementById("orderedListBtn");
 const insertTableBtn = document.getElementById("insertTableBtn");
 const insertHrBtn = document.getElementById("insertHrBtn");
+const insertPageBreakBtn = document.getElementById("insertPageBreakBtn");
 const markdownModeToggle = document.getElementById("markdownModeToggle");
 const docStackEl = document.getElementById("docStack");
 const docLabelEl = document.getElementById("docLabel");
@@ -468,6 +469,7 @@ async function applyProjectData(data) {
   doc.querySelectorAll(".para-image").forEach(bindImageParaEvents);
   doc.querySelectorAll(".para-table").forEach(bindTableParaEvents);
   doc.querySelectorAll(".para-hr").forEach(bindHrParaEvents);
+  doc.querySelectorAll(".para-pagebreak").forEach(bindPageBreakParaEvents);
   // 配置・インデント・ぶら下げ・スタイルはdocHTMLに焼き込まれたインラインstyleでそのまま復元されるが、
   // 旧バージョン・手編集されたファイル等でdata属性だけがありstyleが伴わない場合に備え、念のため再計算する。
   applyParaStyles(Array.from(doc.querySelectorAll(".para:not(.para-opaque)")));
@@ -544,6 +546,7 @@ function blockParaToMarkdown(paraEl) {
     return { type: "image", text: `![](${img ? img.src : ""})` };
   }
   if (paraEl.classList.contains("para-hr")) return { type: "hr", text: "---" };
+  if (paraEl.classList.contains("para-pagebreak")) return { type: "pagebreak", text: "<!-- pagebreak -->" };
   if (paraEl.classList.contains("para-table")) {
     const table = paraEl.querySelector(".para-table-el");
     const rows = table ? Array.from(table.rows).map((tr) =>
@@ -693,7 +696,7 @@ function docxHeadingLevel(paraEl, HeadingLevel) {
 async function buildDocxBlob() {
   if (!window.docx) throw new Error("docxライブラリが読み込めていません。ページを再読み込みしてください。");
   const {
-    Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, WidthType,
+    Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, WidthType, PageBreak, LineRuleType,
     EmphasisMarkType, ImageRun, Table, TableRow, TableCell, ExternalHyperlink,
     CommentRangeStart, CommentRangeEnd, CommentReference,
   } = window.docx;
@@ -812,6 +815,12 @@ async function buildDocxBlob() {
   function blockToDocx(paraEl, comments) {
     if (paraEl.classList.contains("para-image")) return imageBlockToDocx(paraEl, comments);
     if (paraEl.classList.contains("para-table")) return tableBlockToDocx(paraEl, comments);
+    if (paraEl.classList.contains("para-pagebreak")) {
+      if (isTrailingPageBreak(paraEl)) return [];   // 後ろに中身が無い末尾の改ページは、白紙ページになるだけなので出さない
+      // 改ページ記号だけの段落。改ページの後ろに残る段落記号ぶんの空行が次のページの先頭に出ないよう、
+      // 行の高さを1pt（20twip）に固定して前後の余白も0にする。
+      return [new Paragraph({ spacing: { before: 0, after: 0, line: 20, lineRule: LineRuleType.EXACT }, children: [new PageBreak()] })];
+    }
     if (paraEl.classList.contains("para-hr")) {
       return [new Paragraph({ border: { bottom: { color: "999999", space: 4, style: BorderStyle.SINGLE, size: 6 } } })];
     }
@@ -1047,6 +1056,12 @@ function buildPrintDoc() {
       const hr = document.createElement("hr");
       hr.className = "print-hr";
       printDocEl.appendChild(hr);
+    } else if (child.classList.contains("para-pagebreak")) {
+      // 改ページ：高さ0の目印。ここから次のブロックは次のページの先頭から始まる（style.cssの.print-pagebreak参照）。
+      if (isTrailingPageBreak(child)) return;   // 後ろに中身が無い末尾の改ページは、白紙ページになるだけなので出さない
+      const pageBreakEl = document.createElement("div");
+      pageBreakEl.className = "print-pagebreak";
+      printDocEl.appendChild(pageBreakEl);
     } else {
       // buildPrintNode/buildPrintParaは再帰的なDOM構築のみ（複雑な分割ロジックは無い）なので
       // 通常は失敗しないはずだが、想定外の構造でも印刷全体が巻き添えで消えないよう、
@@ -1061,6 +1076,17 @@ function buildPrintDoc() {
         printDocEl.appendChild(p);
       }
     }
+  });
+
+  // 左にfloatする画像・表・区切り線（と、その右隣のサイドノート）の直後に、高さ0の「フロート終了」の
+  // 目印を置く。これが無いと、次の見出しの上の余白（margin-top）がfloatの高さに吸収されて、図の直下に
+  // 見出しが密着してしまう（2026-09指摘：PDFの「６」の上）。詳しくはstyle.cssの.print-clear参照。
+  printDocEl.querySelectorAll(":scope > .print-img, :scope > .print-table, :scope > .print-hr").forEach((floatEl) => {
+    let last = floatEl;
+    if (last.nextElementSibling && last.nextElementSibling.classList.contains("print-aside")) last = last.nextElementSibling;
+    const clearEl = document.createElement("div");
+    clearEl.className = "print-clear";
+    last.insertAdjacentElement("afterend", clearEl);
   });
 
   // サイドノートが1件も無い文書は、右側のサイドノート欄（幅48mm）を使わないぶん本文を広く・大きく
@@ -1972,6 +1998,27 @@ function insertHrBlock() {
 }
 insertHrBtn.onclick = insertHrBlock;
 
+// ---- 改ページの挿入（書式ツールバーの「改ページ」。区切り線と同じ「現在の段落の直後に置く」方式） ----
+// Markdownの改ページ（HTMLコメントpagebreakの1行）の取り込みで作られるものと同じ.para-pagebreakブロック
+// （buildPageBreakParaEl）を使う。削除は挿入済みの改ページの×ボタン（bindPageBreakParaEvents）で行う。
+function insertPageBreakBlock() {
+  const wrap = buildPageBreakParaEl("pb" + hrIdSeq++);
+  const afterEl = getCurrentParaOrLast();
+  if (afterEl && afterEl.parentElement === doc) afterEl.insertAdjacentElement("afterend", wrap);
+  else doc.appendChild(wrap);
+  if (!wrap.nextElementSibling) {
+    const trailingPara = document.createElement("div");
+    trailingPara.className = "para";
+    trailingPara.innerHTML = "<br>";
+    wrap.insertAdjacentElement("afterend", trailingPara);
+  }
+  bindPageBreakParaEvents(wrap);
+  updatePlaceholder();
+  renumberAndLayout();
+  autoSaveDebounced();
+}
+insertPageBreakBtn.onclick = insertPageBreakBlock;
+
 function buildImageParaEl(paraId, src) {
   const wrap = document.createElement("div");
   wrap.className = "para para-image para-opaque";
@@ -2163,6 +2210,42 @@ function bindHrParaEvents(wrap) {
   wrap.querySelector(".para-hr-del-btn").onclick = () => deletePara(wrap);
 }
 
+// ---- 改ページブロック（Markdownの改ページ＝HTMLコメントpagebreakの1行。Wordの改ページ相当） ----
+// 画面では点線と「改ページ」の文字を出すだけの.para-opaqueブロック（区切り線と同じ作り・同じ×ボタン）。
+// 実際にページを分けるのはPDF化（buildPrintDocの.print-pagebreak）とWord書き出し（blockToDocx）。
+// idの連番は区切り線と同じhrIdSeqを共用する（"pb"接頭辞で区別）。これで.jsonの保存項目が増えず、
+// 改ページ導入前の.jsonもそのまま読める。
+// 後ろに印刷する中身（文字のある段落・画像・表・区切り線）が何も無い改ページか。そういう末尾の改ページは
+// 最後に白紙ページが1枚できるだけなので、PDF化とWord書き出しでは出さない（後ろが空の段落や別の改ページだけ
+// の場合も同じ。途中に連続する改ページ＝白紙ページを意図的に挟む使い方は、後ろに中身があるので影響しない）。
+function isTrailingPageBreak(paraEl) {
+  for (let n = paraEl.nextElementSibling; n; n = n.nextElementSibling) {
+    if (!n.classList.contains("para") || n.classList.contains("para-pagebreak")) continue;
+    if (n.classList.contains("para-opaque") || n.textContent.trim() !== "") return false;
+  }
+  return true;
+}
+function buildPageBreakParaEl(paraId) {
+  const wrap = document.createElement("div");
+  wrap.className = "para para-pagebreak para-opaque";
+  wrap.contentEditable = "false";
+  wrap.dataset.paraId = paraId;
+  const delBtn = document.createElement("button");
+  delBtn.type = "button";
+  delBtn.className = "para-hr-del-btn para-pagebreak-del-btn";   // 見た目は区切り線の×ボタンと共通
+  delBtn.innerHTML = ICON_X;
+  delBtn.title = "この改ページを削除";
+  wrap.appendChild(delBtn);
+  const mark = document.createElement("div");
+  mark.className = "para-pagebreak-mark";
+  mark.textContent = "改ページ";
+  wrap.appendChild(mark);
+  return wrap;
+}
+function bindPageBreakParaEvents(wrap) {
+  wrap.querySelector(".para-pagebreak-del-btn").onclick = () => deletePara(wrap);
+}
+
 // ---- 見出し・引用・コード・リスト項目（テキスト型ブロック。注釈・ホバー削除は既存の仕組みがそのまま効く） ----
 function buildHeadingParaEl(level, innerHtml) {
   const el = document.createElement("div");
@@ -2206,6 +2289,7 @@ function buildBlockEl(b) {
   if (b.type === "code") return buildCodeParaEl(b.text);
   if (b.type === "li") return buildListItemParaEl(b.ordered, b.displayNum, b.indentLevel, MdParser.inlineToHtml(b.text));
   if (b.type === "hr") return buildHrParaEl("hr" + hrIdSeq++);
+  if (b.type === "pagebreak") return buildPageBreakParaEl("pb" + hrIdSeq++);
   if (b.type === "table") return buildTableParaEl("tbl" + tableIdSeq++, b.header, b.aligns, b.rows);
   if (b.type === "image") return buildImageParaEl("img" + imageIdSeq++, b.url);
   return null;
@@ -2241,6 +2325,7 @@ function bindOpaqueParaEvents() {
   doc.querySelectorAll(".para-image").forEach(bindImageParaEvents);
   doc.querySelectorAll(".para-table").forEach(bindTableParaEvents);
   doc.querySelectorAll(".para-hr").forEach(bindHrParaEvents);
+  doc.querySelectorAll(".para-pagebreak").forEach(bindPageBreakParaEvents);
 }
 
 function importMarkdownBlocks(blocks) {
@@ -2738,11 +2823,37 @@ function applyFontSizeStep(delta) {
 fontSizeDecBtn.onclick = () => applyFontSizeStep(-1);
 fontSizeIncBtn.onclick = () => applyFontSizeStep(1);
 
-// スタイルは「本文」（data-style無し）とH1〜H3の排他選択（配置と同じ考え方）。
+// 見出しには2つの仕組みがある（footerの注記・headingSizeLabel参照）：
+//   ①.para-hNクラス（Markdown取り込みが付ける。文字サイズ・太さ・上余白は「デザイン」のCSSが決める）
+//   ②data-style属性（このツールバーのスタイルボタンが付ける。文字サイズ・太さは「カスタマイズ」の
+//     見出しスタイル設定＝pt指定で、デザインの影響を受けない）
+// 以前は、ボタンが常に②だけを付け外ししていたため、md取り込み由来の見出し（多くはファイル先頭の「# 題」）に
+// 「H2」ボタンを使っても、クラスが.para-h1のまま②のサイズ（14pt）が上書きされるだけで、mdの「##」見出しとは
+// 別の大きさになっていた。「本文」ボタンも②しか外さないので、クラスの見出し（H1の大きさ）が解除できなかった
+// （2026-09指摘）。今は次のように振り分ける：
+//   ・すでに.para-hNクラスを持つ段落、およびMarkdownモード中の段落 → ①で切り替える（クラスを付け替え、
+//     ②のdata-styleは外す）。mdの「##」と同じ見た目になり、H2の上余白もデザインどおり乗る。
+//     Markdownモードでは文字サイズ（pt指定）が.md書き出しに残らないため、常にこちらに揃える。
+//   ・上記以外（通常モードの素の段落） → 従来どおり②（pt指定の書面レイアウト）。
+const HEADING_CLASS_RE = /^para-h[1-6]$/;
+function hasHeadingClass(p) {
+  return Array.from(p.classList).some((c) => HEADING_CLASS_RE.test(c));
+}
+// スタイルは「本文」（見出しなし）とH1〜H3の排他選択（配置と同じ考え方）。
 function applyStyle(styleKey) {
   const paras = getTargetParas();
   if (!paras.length) return;
-  paras.forEach((p) => { if (!styleKey) delete p.dataset.style; else p.dataset.style = styleKey; });
+  paras.forEach((p) => {
+    if (markdownMode || hasHeadingClass(p)) {
+      Array.from(p.classList).forEach((c) => { if (HEADING_CLASS_RE.test(c)) p.classList.remove(c); });
+      delete p.dataset.style;
+      if (styleKey) p.classList.add(`para-${styleKey}`);
+    } else if (!styleKey) {
+      delete p.dataset.style;
+    } else {
+      p.dataset.style = styleKey;
+    }
+  });
   applyParaStyles(paras);
   updateFormatToolbarState();
   autoSaveDebounced();
@@ -2903,7 +3014,11 @@ function updateFormatToolbarState() {
   fontSizeDecBtn.disabled = markdownMode || !p || fontSizePt <= FONT_SIZE_MIN_PT;
   fontSizeIncBtn.disabled = markdownMode || !p || fontSizePt >= FONT_SIZE_MAX_PT;
 
-  const styleKey = p ? (p.dataset.style || "") : "";
+  // 見出しはdata-style（ツールバー由来）か.para-hNクラス（md取り込み・applyStyle参照）のどちらかで持つ。
+  // クラス側のH1〜H3もその見出しのボタンを強調する（H4〜H6はボタンが無いので、どれも強調しない）。
+  const headingClassMatch = p ? /(?:^|\s)para-h([1-6])(?:\s|$)/.exec(p.className) : null;
+  const styleKey = !p ? "" : p.dataset.style
+    || (headingClassMatch ? (Number(headingClassMatch[1]) <= 3 ? `h${headingClassMatch[1]}` : "-") : "");
   styleBtns.forEach((btn) => btn.classList.toggle("active", !!p && (btn.dataset.style || "") === styleKey));
   bulletListBtn.classList.toggle("active", !!p && isBulletListPara(p));
   orderedListBtn.classList.toggle("active", !!p && isOrderedListPara(p));
