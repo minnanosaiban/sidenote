@@ -1064,7 +1064,8 @@ function buildPrintDoc() {
   });
 
   // サイドノートが1件も無い文書は、右側のサイドノート欄（幅48mm）を使わないぶん本文を広く・大きく
-  // 組む（本文12pt・1行37字＝画面表示と同じ文字数。CSS側のbody.print-active.no-sidenoteが対応）。
+  // 組む（本文12pt・幅170mm＝全角1行40字。CSS側のbody.print-active.no-sidenoteが対応。
+  // Markdownモード中は画面（#doc）の1行もこれと同じ40字に揃える＝style.cssの--line-max参照）。
   document.body.classList.toggle("no-sidenote", notesByAnchor.size === 0);
 
   // 直後にwindow.print()（またはプレビュー用のクラス切り替え）が呼ばれる前に、大量のfloat要素を
@@ -1520,6 +1521,12 @@ markdownModeToggle.onchange = () => {
   markdownMode = markdownModeToggle.checked;
   try { localStorage.setItem(MARKDOWN_MODE_KEY, markdownMode ? "1" : "0"); } catch (err) { /* noop */ }
   applyMarkdownMode();
+  // Markdownモード中は本文の1行の長さ（1行40字）・ページ幅がCSSで変わり、折り返し位置＝各段落の高さが
+  // 変わるため、サイドノートの縦位置を測り直す。ページ最下部の「1行◯字」の表記も合わせて書き直す。
+  // （起動時のapplyMarkdownMode()呼び出しからは呼ばない：その時点では後ろの方でconst宣言される
+  //  変数がまだ初期化前でTDZになりうる。起動時は下のapplyTheme→updateFooterInfoが同じ役目を担う。）
+  renumberAndLayout();
+  updateFooterInfo();
 };
 applyMarkdownMode();
 
@@ -1604,9 +1611,11 @@ function updateFooterInfo() {
     rows.map(([label, value]) => `<div>${label}：${value}</div>`).join("") +
     `</div>`;
 
+  // 画面の1行の字数：Markdownモード中はPDF（サイドバーなし）と同じ40字（style.cssの--line-max参照）。
+  const screenLineChars = markdownMode ? 40 : 37;
   appFooterEl.innerHTML =
     section("画面表示", [
-      ["本文", `${screenFont}・15px・1行37字`],
+      ["本文", `${screenFont}・15px・1行${screenLineChars}字`],
       ["サイドバー", `${screenFont}・13px・1行18字`],
       ["h1", `${screenFont}・${headingSizeLabel("h1", "15px")}`],
       ["h2", `${screenFont}・${headingSizeLabel("h2", "15px")}・上部余白${h2MarginTopEm}em（Markdown取り込み時）`],

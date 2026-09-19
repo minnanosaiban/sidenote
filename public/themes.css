@@ -130,8 +130,12 @@ html[data-theme="wamodan"] {
   --font-body: 'Noto Serif JP', serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
-html[data-theme="wamodan"] .para-h2 { margin-top: 3em; }
-html[data-theme="wamodan"] .para:not(.para-opaque):not(.para-li) { margin-bottom: 2em; }
+/* 余白はstyle.cssの変数（--h2-before／--gap-after）の書き換えで指定する（画面だけでなく、
+   Markdownモード時の印刷もこの値を使うため。style.cssの:root参照）。 */
+html[data-theme="wamodan"] {
+  --h2-before: 3em;
+  --gap-after: 2em;
+}
 
 /* ⑥ サイト：本サイト（minnanosaiban.github.io/hotline）のデザイントークン（紺のリンク色・
    朱のアクセント・薄い青灰色の面）をそのまま流用し、公開サイトと地続きの見た目にする。
@@ -160,12 +164,12 @@ html[data-theme="site"] .para-h2 {
   font-weight: 300;
   font-size: 1.6em;
   text-align: center;
-  margin-top: 4.8em;   /* 2026-09、上の余白を1.5倍にしてほしいとの指摘で3.2em→4.8emへ */
 }
-/* margin-bottomだけ、style.css側の.para:not(.para-opaque):not(.para-li){margin-bottom:.6em}
-   （詳細度3）に勝つよう、同じ:not()の数で詳細度を合わせる。 */
-html[data-theme="site"] .para-h2:not(.para-opaque):not(.para-li) {
-  margin-bottom: 1.6em;
+/* H2の前後の余白はstyle.cssの変数の書き換えで指定する（Markdownモード時の印刷も同じ値を使うため）。
+   2026-09、上の余白を1.5倍にしてほしいとの指摘で3.2em→4.8emへ。 */
+html[data-theme="site"] {
+  --h2-before: 4.8em;
+  --h2-after: 1.6em;
 }
 
 /* ⑦ ノート：丸み・暖色のインク・クリームがかった面で、個人メモ寄りのやわらかさを出す。
