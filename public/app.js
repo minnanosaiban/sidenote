@@ -946,6 +946,15 @@ function buildPrintNode(node) {
     Array.from(node.childNodes).forEach((child) => span.appendChild(buildPrintNode(child)));
     return span;
   }
+  // 箇条書き・番号付きのマーカー（.li-marker）。素のテキストのまま出すと「• 」の幅が1emより狭く、1行目の
+  // 本文だけ折り返し行（padding-left:1em）より数px左に寄ってしまう（画面と同じ問題）。画面と同じく
+  // 1em幅の箱に入れて頭を揃える（style.cssの.print-li-marker参照）。
+  if (node.classList && node.classList.contains("li-marker")) {
+    const span = document.createElement("span");
+    span.className = "print-li-marker";
+    span.textContent = node.textContent;
+    return span;
+  }
   if (node.tagName === "A") {
     const a = document.createElement("a");
     a.href = node.getAttribute("href") || "#";

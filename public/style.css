@@ -379,8 +379,11 @@ body.markdown-mode-active {
 /* display:inline-block + min-width:1emで、マーカー（「• 」等）の実際の幅をぶら下げインデント幅
    （.para-liのpadding-left:1em/text-indent:-1em）に合わせる。付けないと「• 」の実測幅が1emより
    狭く、1行目の本文だけ折り返し2行目より数px左に寄って見える（2026-09、箇条書きの行揃えが
-   微妙にずれるという指摘で追加。番号付き（「12. 」等）は元から1em超のため影響しない）。 */
-.li-marker { display: inline-block; min-width: 1em; color: var(--muted); user-select: none; }
+   微妙にずれるという指摘で追加。番号付き（「12. 」等）は元から1em超のため影響しない）。
+   text-indent:0は必須：text-indentは継承され、inline-blockにすると.para-liのぶら下げ用text-indent:-1emが
+   マーカーの中の文字にも効いて、点・番号だけが本文の左端より1em外側へはみ出していた（2026-09指摘：
+   スクリーンショットの「•」が左の余白に浮く）。マーカーの枠自体は正しい位置にあるので0へ戻す。 */
+.li-marker { display: inline-block; min-width: 1em; text-indent: 0; color: var(--muted); user-select: none; }
 
 /* ── 段落ホバー時の「＋画像」「×削除」（JIMDO的なブロック単位の操作） ──
    #docの外側の要素なので、位置は.doc-left基準の絶対座標（JSがtopだけ合わせる）。 */
@@ -584,6 +587,10 @@ body.print-active .print-quote, body.print-active .print-code {
 }
 /* リスト項目同士は画面（.para:not(.para-li)の余白から除外）と同じく詰める。 */
 body.print-active .print-li { margin-bottom: 0; }
+/* 箇条書き・番号付きのマーカー。画面の.li-markerと同じ考え方で1em幅の箱にし、1行目の本文の頭を折り返し行
+   （.print-liのpadding-left:1em）に揃える。text-indent:0は、親のぶら下げ用text-indent:-1emを継承して
+   マーカーの文字だけ左へずれるのを防ぐ（画面の.li-markerと同じ）。 */
+body.print-active .print-li-marker { display: inline-block; min-width: 1em; text-indent: 0; }
 body.print-active .print-h1, body.print-active .print-h2, body.print-active .print-h3,
 body.print-active .print-h4, body.print-active .print-h5, body.print-active .print-h6 {
   font-family: var(--p-font-head, inherit); font-weight: 700;
