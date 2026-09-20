@@ -419,6 +419,11 @@ body.markdown-mode-active {
 
 /* ── 表ブロック（Markdownの表） ── */
 .para-table { margin: 16px 0; }
+/* 画像・表の下の余白は、段落の後ろの余白（--gap-after）より狭くならないようにする。上の16pxのままだと、
+   テーマが段落の余白を広げている時（和モダン＝2em）、表の直後の段落・太字の小見出しだけ上が詰まって見える
+   （2026-09指摘：表の直後の「原告の損害」）。既定テーマ（.6em＝9px）では従来どおり16px。上側は直前の段落の
+   margin-bottomと重なって大きい方になるので、ここでは触らない。詳細度は.para:last-child（末尾は0）より低い。 */
+.para-image, .para-table { margin-bottom: max(16px, var(--gap-after)); }
 .para-table-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
 .para-table-note-btn {
   font-size: 12.5px; padding: 5px 10px; border-radius: 6px; border: none;
@@ -675,6 +680,16 @@ body.print-active.markdown-mode-active .print-quote, body.print-active.markdown-
 }
 body.print-active.markdown-mode-active .print-h2 { margin-bottom: var(--h2-after); }
 body.print-active.markdown-mode-active .print-li { margin-bottom: 0; }
+/* 表・画像・区切り線（float:left）の後ろも、段落の後ろの余白（--gap-after）と同じだけ空ける。これらの
+   margin-bottomは10ptの固定値なので、テーマが段落の余白を広げている時（和モダン＝2em＝24pt）、表の直後の
+   段落だけ上が詰まって見えた（画面の.para-tableと同じ指摘。2026-09）。em基準は表のfont-size（9pt）ではなく
+   段落と同じ#printDocの文字サイズに合わせたいので、フロートの直後に置く.print-clearの下余白で不足分
+   （--gap-after − 10pt。既定の.6emでは負になるので0＝従来どおり10pt）を足す。 */
+body.print-active.markdown-mode-active .print-table + .print-clear,
+body.print-active.markdown-mode-active .print-img + .print-clear,
+body.print-active.markdown-mode-active .print-hr + .print-clear {
+  margin-bottom: max(0pt, var(--gap-after) - 10pt);
+}
 body.print-active.markdown-mode-active .print-h1 { margin-top: var(--h1-before); }
 body.print-active.markdown-mode-active .print-h2 { margin-top: var(--h2-before); }
 body.print-active.markdown-mode-active .print-h3 { margin-top: var(--h3-before); }
