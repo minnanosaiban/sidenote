@@ -201,7 +201,7 @@ let openedMdFileHandle = null;
 
 // ヒーロー側に「ファイル：〇〇.md」と実ファイル名を表示する（openedMdFilenameが
 // 変わる4箇所――.mdを開く／.jsonを開く／自動保存から復元／新しい作業――すべてから呼ぶ）。
-// タイトル欄（titleInput）はMarkdown見出し(#)や.json保存名のもとになる別の値なので、
+// タイトル欄（titleInput）は.json等の保存名のもとになる別の値（本文には出さない）なので、
 // 実際にCtrl+Sで上書きされるファイルがどれかが分かるよう、あえて別の場所に出す。
 function updateOpenedFileNote() {
   if (openedMdFilename) {
@@ -591,13 +591,11 @@ function docToMarkdown() {
     .map(blockParaToMarkdown)
     .filter((b) => b.text !== "" || b.type === "hr");
 
+  // ファイル名（タイトル欄）を本文の先頭に「# 」見出しとして足すことはしない（2026-09指定）。以前は
+  // 本文の先頭が見出しでない時に「# ファイル名」を自動で付けていたため、mdを開いてCtrl+S（元ファイルへ
+  // 上書き）／「MDで書き出す」をするたび、元のmdの先頭にファイル名のH1が勝手に増え、次に開くと本文の
+  // H1になっていた。タイトル欄は保存名（.json/.md/.docx）に使うだけで、書き出す本文は本文のまま。
   const lines = [];
-  const title = projectTitle();
-  // 本文の先頭が既に見出し（#…）なら、タイトル欄からの見出し行は付けない（2026-09、ファイル名欄が
-  // 実際のファイル名になった後もMarkdown取り込み時の先頭見出しをそのまま本文に残すようにしたため、
-  // 両方付けると書き出したファイルで#が2重になっていた指摘を受けて修正）。
-  const bodyStartsWithHeading = blocks[0] && blocks[0].type === "heading";
-  if (title && !bodyStartsWithHeading) { lines.push(`# ${title}`); lines.push(""); }
 
   blocks.forEach((b, i) => {
     lines.push(b.text);
