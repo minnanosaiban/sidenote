@@ -1028,6 +1028,39 @@ function buildPrintPara(paraEl) {
   return el;
 }
 
+// 「段組み」デザイン（サイドノートなし）：印刷版面を、改ページごとに区切った「節」ごとの段組みの箱（.print-cols）に
+// 入れ直す。段組み（multicol）の中の改ページ（break-after:page）は、ブラウザ（Chromeで確認）が「次の段へ」の
+// 改行として扱ってしまい、次の節が右の段の途中から始まってしまうため。箱と箱の間に置いた改ページは、普通の
+// ページ区切りとして効く（節ごとに新しいページの左の段から始まる）。
+// 節の末尾の空段落は外す：後ろに何も続かないので見た目に効かず、図でページがほぼ埋まっている時に空段落だけが
+// 次のページへ押し出されて、白紙のページが1枚できてしまうため（末尾が図のmdを取り込むと、編集用の空段落が付く）。
+function wrapPrintDocInColumnSections() {
+  if (currentTheme !== "columns" || notesByAnchor.size !== 0) return;
+  const isEmptyPara = (el) => el.classList.contains("print-para") && !el.querySelector("img, table, hr") &&
+    el.textContent.replace(/​/g, "").trim() === "";
+  const frag = document.createDocumentFragment();
+  let cols = null;
+  const closeSection = () => {
+    while (cols && cols.lastElementChild && isEmptyPara(cols.lastElementChild)) cols.lastElementChild.remove();
+    if (cols && !cols.children.length) cols.remove();
+    cols = null;
+  };
+  Array.from(printDocEl.children).forEach((el) => {
+    // .print-clearはfloatの回り込みを止めるための空の目印。段組みでは表・画像・区切り線をfloatにしないので不要で、
+    // 残すと節の最後の要素が「最後の子」でなくなる（style.cssの.print-cols > .print-img:last-child参照）。
+    if (el.classList.contains("print-clear")) { el.remove(); return; }
+    if (el.classList.contains("print-pagebreak")) { closeSection(); frag.appendChild(el); return; }
+    if (!cols) {
+      cols = document.createElement("div");
+      cols.className = "print-cols";
+      frag.appendChild(cols);
+    }
+    cols.appendChild(el);
+  });
+  closeSection();
+  printDocEl.appendChild(frag);
+}
+
 function buildPrintDoc() {
   printDocEl.innerHTML = "";
 
@@ -1101,6 +1134,7 @@ function buildPrintDoc() {
   // 組む（本文12pt・幅170mm＝全角1行40字。CSS側のbody.print-active.no-sidenoteが対応。
   // Markdownモード中は画面（#doc）の1行もこれと同じ40字に揃える＝style.cssの--line-max参照）。
   document.body.classList.toggle("no-sidenote", notesByAnchor.size === 0);
+  wrapPrintDocInColumnSections();
 
   // 直後にwindow.print()（またはプレビュー用のクラス切り替え）が呼ばれる前に、大量のfloat要素を
   // 書き換えた後のレイアウトを強制的に確定させる（読み取りアクセスでリフローを強制する定番の手法）。
@@ -1181,6 +1215,23 @@ async function preparePrintDoc(bw) {
   return failed;
 }
 
+// 「段組み」デザインのPDF（サイドバーなし）はA4横。@pageはテーマで切り替えられないため、印刷の直前だけ
+// ここで差し込み、印刷が終わったら外す（style.cssの「デザイン『段組み』」参照）。サイドノートがある文書は
+// 従来のサイドバー付きの版面（A4縦）のままにする。
+const PRINT_PAGE_STYLE_ID = "printPageStyle";
+function removePrintPageStyle() {
+  const old = document.getElementById(PRINT_PAGE_STYLE_ID);
+  if (old) old.remove();
+}
+function applyPrintPageStyle() {
+  removePrintPageStyle();
+  if (currentTheme !== "columns" || !document.body.classList.contains("no-sidenote")) return;
+  const style = document.createElement("style");
+  style.id = PRINT_PAGE_STYLE_ID;
+  style.textContent = "@page { size: A4 landscape; margin: 20mm; }";
+  document.head.appendChild(style);
+}
+
 async function runPdfPrint(bw) {
   pdfColorPanel.hidden = true;
   lastPdfColor = bw ? "bw" : "color";
@@ -1188,6 +1239,7 @@ async function runPdfPrint(bw) {
   try {
     const failed = await preparePrintDoc(bw);
     if (failed) setStatus(`${failed}枚の画像は白黒に変換できず、カラーのままです。`);
+    applyPrintPageStyle();
     document.body.classList.add("print-active");
     window.print();   // Chromeではこの呼び出しはダイアログが閉じるまでブロックするので、直後にクラスを外してよい
   } catch (err) {
@@ -1195,6 +1247,7 @@ async function runPdfPrint(bw) {
     setStatus("PDF化の準備に失敗しました。");
   } finally {
     document.body.classList.remove("print-active", "print-bw");
+    removePrintPageStyle();
   }
 }
 
@@ -1673,7 +1726,7 @@ const THEMES = [
   { id: "dark", label: "ダークUI", desc: "分析ツール風・集中読解" },
   { id: "wamodan", label: "和モダン", desc: "エディトリアルより余白広め" },
   { id: "site", label: "サイト", desc: "紺×朱、公開サイトの配色" },
-  { id: "notebook", label: "ノート", desc: "丸みと暖色、個人メモの柔らかさ" },
+  { id: "columns", label: "段組み", desc: "和モダン＋本文16pt・A4横2段組みのPDF向け" },
 ];
 const DEFAULT_THEME = "minimal";
 const THEME_KEY = "sidenote-theme-v1";
@@ -1725,6 +1778,15 @@ function probeHeadingMarginTopEm(level) {
   return fontPx ? marginPx / fontPx : 0;
 }
 
+// デザインごとに違う、PDF（サイドバーなし）の組み。ここに無いデザインは既定（本文12pt・1行40字・1段）。
+// 「段組み」はA4横の2段組みで本文16pt（style.cssの「デザイン『段組み』」・applyPrintPageStyle参照）。
+const NO_SIDEBAR_PRINT_LAYOUT = {
+  columns: {
+    bodyPt: 16, headPt: [22, 19, 17], chars: 21, layout: "A4横の2段組み",
+    note: "「段組み」のh1〜h3は、Markdownの見出し（#〜###）の大きさです（ツールバーの見出しは項番設定どおり）。サイドノートがある文書は従来のサイドバー付きの版面になります。",
+  },
+};
+
 function updateFooterInfo() {
   if (!appFooterEl) return;
   const screenFont = firstFontName(getComputedStyle(document.documentElement).getPropertyValue("--font-body"));
@@ -1739,7 +1801,8 @@ function updateFooterInfo() {
     `</div>`;
 
   // 画面の1行の字数：Markdownモード中はPDF（サイドバーなし）と同じ40字（style.cssの--line-max参照）。
-  const screenLineChars = markdownMode ? 40 : 37;
+  const nsp = NO_SIDEBAR_PRINT_LAYOUT[currentTheme];   // このデザイン固有のPDF（サイドバーなし）の組み。無ければ既定
+  const screenLineChars = markdownMode ? (nsp ? nsp.chars : 40) : 37;
   appFooterEl.innerHTML =
     section("画面表示", [
       ["本文", `${screenFont}・15px・1行${screenLineChars}字`],
@@ -1755,13 +1818,18 @@ function updateFooterInfo() {
       ["h2", `${printFont}・${headingSizeLabel("h2", "10.5pt")}`],
       ["h3", `${printFont}・${headingSizeLabel("h3", "10.5pt")}`],
     ]) +
-    section("PDF（サイドバーなし）", [
+    section("PDF（サイドバーなし）", nsp ? [
+      ["本文", `${printFont}・${nsp.bodyPt}pt・${nsp.layout}（1段1行${nsp.chars}字）`],
+      ["h1", `${printFont}・${nsp.headPt[0]}pt`],
+      ["h2", `${printFont}・${nsp.headPt[1]}pt`],
+      ["h3", `${printFont}・${nsp.headPt[2]}pt`],
+    ] : [
       ["本文", `${printFont}・12pt・1行40字（2cm余白の残り幅で改行）`],
       ["h1", `${printFont}・${headingSizeLabel("h1", "12pt")}`],
       ["h2", `${printFont}・${headingSizeLabel("h2", "12pt")}`],
       ["h3", `${printFont}・${headingSizeLabel("h3", "12pt")}`],
     ]) +
-    `<div class="footer-section footer-section-note">全角1文字≒1em換算。見出しの実際の大きさは「項番設定（カスタマイズ）」の見出しスタイルで変えられます。</div>`;
+    `<div class="footer-section footer-section-note">全角1文字≒1em換算。見出しの実際の大きさは「項番設定（カスタマイズ）」の見出しスタイルで変えられます。${nsp ? nsp.note : ""}</div>`;
 }
 themeGrid.querySelectorAll("[data-theme-id]").forEach((btn) => {
   btn.onclick = () => { applyTheme(btn.dataset.themeId); autoSaveDebounced(); };

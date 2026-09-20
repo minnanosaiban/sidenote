@@ -172,21 +172,32 @@ html[data-theme="site"] {
   --h2-after: 1.6em;
 }
 
-/* ⑦ ノート：丸み・暖色のインク・クリームがかった面で、個人メモ寄りのやわらかさを出す。
-   2026-09-12追加。既存5案は総じて硬派（雑誌／公文書／SaaS／分析ツール／墨）なので、
-   唯一の「柔らかい」方向として追加。 */
-html[data-theme="notebook"] {
+/* ⑦ 段組み：和モダンをベースに、A4横・2段組みのPDFに合わせたデザイン（2026-09、ノートと差し替え）。
+   色・書体・余白は和モダンと同じ。変えたのは文字の大きさと1行の字数：サイドノートなしのPDFの本文を
+   12pt→16ptにし、見出し（H1〜H3）をそれに比例して拡大し（本文16ptに対しH1 22pt／H2 19pt／H3 17pt）、
+   1行を「1段ぶん」の21字にする（画面のMarkdownモードも同じ21字）。2段組み・A4横の組み方は
+   style.cssの「デザイン『段組み』」とapp.jsのapplyPrintPageStyle、ページ下部の目安表示はNO_SIDEBAR_PRINT_LAYOUT参照。 */
+html[data-theme="columns"] {
   --paper: #f4f5f7;
-  --ink: #3d3a34;
-  --muted: #8f887a;
-  --accent: #b8654f;
-  --rule: #e3ddd0;
-  --surface: #fdfaf3;
-  --radius: 14px;
-  --font-head: 'Noto Sans JP', sans-serif;
-  --font-body: 'Noto Sans JP', sans-serif;
+  --ink: #211f1c;
+  --muted: #7a766e;
+  --accent: #3f5142;
+  --rule: #d9d7d0;
+  --surface: #ffffff;
+  --radius: 0px;
+  --font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
+  --font-body: 'Noto Serif JP', serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --h2-before: 6.4em;   /* 余白は和モダンと同じ値（emなので、文字が大きくなったぶん実寸は比例して広がる） */
+  --gap-after: 2em;
 }
+/* 画面の見出しの大きさも、PDFと同じ比率（本文16pt：H1 22pt＝1.375倍／H2 19pt／H3 17pt）にそろえる。 */
+html[data-theme="columns"] .para-h1 { font-size: 1.375em; }
+html[data-theme="columns"] .para-h2 { font-size: 1.1875em; }
+html[data-theme="columns"] .para-h3 { font-size: 1.0625em; }
+html[data-theme="columns"] .para-h4, html[data-theme="columns"] .para-h5, html[data-theme="columns"] .para-h6 { font-size: 1em; }
+/* Markdownモードの画面の1行の長さ＝PDFの1段の字数（A4横の1段123.5mm÷全角16pt＝21字。0.1emは端数の余裕）。 */
+html[data-theme="columns"] body.markdown-mode-active { --line-max: 21.1em; }
 
 /* ------------------------------------------------------------------
    印刷（PDF化）用のフォント・差し色。印刷は常に白地・黒文字が基本方針なので
@@ -230,9 +241,9 @@ html[data-theme="site"] body.print-active {
   --p-font-body: 'Noto Sans JP', sans-serif;
   --p-accent: #e94709;
 }
-/* ノートのaccent（#b8654f）は白地では淡すぎるため、印刷時だけダーク寄りに調整する（ダークUIと同じ考え方）。 */
-html[data-theme="notebook"] body.print-active {
-  --p-font-head: 'Noto Sans JP', sans-serif;
-  --p-font-body: 'Noto Sans JP', sans-serif;
-  --p-accent: #8a4636;
+/* 段組みは和モダンと同じ書体・差し色（PDFの本文16pt・2段組みはstyle.cssの「デザイン『段組み』」）。 */
+html[data-theme="columns"] body.print-active {
+  --p-font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
+  --p-font-body: 'Noto Serif JP', serif;
+  --p-accent: #3f5142;
 }

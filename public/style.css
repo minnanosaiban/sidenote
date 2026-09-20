@@ -698,6 +698,60 @@ body.print-active.no-sidenote .print-table, body.print-active.no-sidenote .print
 }
 body.print-active.no-sidenote .print-img { width: 170mm; max-width: 170mm; }
 
+/* ── デザイン「段組み」（themes.css／app.js THEMES）：サイドノートなしのPDFを A4横・2段組み・本文16pt で組む ──
+   和モダンをベースに、本文を12pt→16pt、見出しをそれに比例して拡大し、本文幅を「1段の幅」にする。段は#printDocの
+   column-countで作る。サイドノートがある文書は従来のサイドバー付き版面のまま（.no-sidenoteが付かないので、
+   このブロックは効かない）。用紙をA4横にする@pageはテーマで切り替えられないため、印刷の直前にapp.jsが差し込む
+   （applyPrintPageStyle）。A4横・余白20mmの本文幅257mmを段間10mmで割ると1段123.5mm＝16ptで全角21字
+   （21字＝118.5mm。22字は124.2mmで入らない）。 */
+html[data-theme="columns"] body.print-active.no-sidenote #printDoc { font-size: 16pt; }
+/* 段組みの箱は、改ページで区切った節ごと（.print-cols。app.jsのwrapPrintDocInColumnSections参照）。#printDoc全体を
+   1つの段組みにしないのは、段組みの中の改ページがブラウザに「次の段へ」と解釈されてしまうため。 */
+html[data-theme="columns"] body.print-active.no-sidenote .print-cols { column-count: 2; column-gap: 10mm; }
+/* 節の最初の要素は上の余白を付けない（新しいページの先頭から始まるため。強制の改ページの直後は、ブラウザが
+   上の余白を自動では切り捨てない）。 */
+html[data-theme="columns"] body.print-active.no-sidenote .print-cols > :first-child { margin-top: 0; }
+/* 段組みの末尾に空の箱（clear用）を残さない：ページ末尾で次のページへ押し出され、余計な白紙ページになりうる。 */
+html[data-theme="columns"] body.print-active.no-sidenote #printDoc::after { content: none; }
+/* 幅は固定のmm値をやめ、1段の幅（auto）に任せる。 */
+html[data-theme="columns"] body.print-active.no-sidenote .print-para,
+html[data-theme="columns"] body.print-active.no-sidenote .print-h1, html[data-theme="columns"] body.print-active.no-sidenote .print-h2,
+html[data-theme="columns"] body.print-active.no-sidenote .print-h3, html[data-theme="columns"] body.print-active.no-sidenote .print-h4,
+html[data-theme="columns"] body.print-active.no-sidenote .print-h5, html[data-theme="columns"] body.print-active.no-sidenote .print-h6,
+html[data-theme="columns"] body.print-active.no-sidenote .print-quote, html[data-theme="columns"] body.print-active.no-sidenote .print-code {
+  width: auto;
+}
+/* 見出し：本文16ptに比例（サイドバー付きの比率 14.5：12.5：11：10.5 ≒ 1.38：1.19：1.05：1）。 */
+html[data-theme="columns"] body.print-active.no-sidenote .print-h1 { font-size: 22pt; }
+html[data-theme="columns"] body.print-active.no-sidenote .print-h2 { font-size: 19pt; }
+html[data-theme="columns"] body.print-active.no-sidenote .print-h3 { font-size: 17pt; }
+html[data-theme="columns"] body.print-active.no-sidenote .print-h4,
+html[data-theme="columns"] body.print-active.no-sidenote .print-h5,
+html[data-theme="columns"] body.print-active.no-sidenote .print-h6 { font-size: 16pt; }
+/* 表・区切り線：サイドバー用のfloatをやめ、1段の中の普通のブロックとして置く。表の文字は本文16ptに合わせて12pt
+   （従来の9pt＝本文12ptの.75倍と同じ比率）。表そのもののfont-sizeは本文のままにして、余白のem（--gap-after／
+   --table-extra）が段落と同じ基準で計算されるようにする。上下の余白は段落間の余白＋--table-extra（重なるので
+   両方をmarginに含める）。行の途中でページ・段をまたがない。 */
+html[data-theme="columns"] body.print-active.no-sidenote .print-table,
+html[data-theme="columns"] body.print-active.no-sidenote .print-hr { float: none; clear: none; width: 100%; }
+html[data-theme="columns"] body.print-active.no-sidenote .print-table {
+  font-size: 1em; margin: calc(var(--gap-after) + var(--table-extra)) 0;
+}
+html[data-theme="columns"] body.print-active.no-sidenote .print-table th,
+html[data-theme="columns"] body.print-active.no-sidenote .print-table td { font-size: 12pt; padding: 5pt 8pt; }
+html[data-theme="columns"] body.print-active.no-sidenote .print-table tr { break-inside: avoid; }
+/* 画像は2段をまたいで中央に置く（1段の幅だと図の中の文字が小さくなりすぎるため）。高さは用紙の内側（A4横で170mm）に収める。 */
+html[data-theme="columns"] body.print-active.no-sidenote .print-img {
+  float: none; clear: none; column-span: all; display: block;
+  width: auto; height: auto; max-width: 100%; max-height: 150mm; margin: 0 auto var(--gap-after);
+}
+/* 節の最後が画像の時は、下の余白を付けない：ページに収まっていても、この余白が次のページへはみ出して
+   末尾に白紙のページが1枚できてしまう（A4横で確認）。次に来るのは改ページか文書の終わりなので余白は不要。 */
+html[data-theme="columns"] body.print-active.no-sidenote .print-cols > .print-img:last-child { margin-bottom: 0; }
+/* 箇条書きの項目は、途中で段をまたがず1つのまとまりで次の段へ送る（短い項目の最後の1行だけが次の段に
+   泣き別れするのを防ぐ）。 */
+html[data-theme="columns"] body.print-active.no-sidenote .print-li { break-inside: avoid; }
+
 /* ── Markdownモード時の印刷 ──
    Markdownモード中は、Web表示とPDF表示を同じ見た目にする（2026-09指定）。
    ・1行の文字数：PDF（サイドバーなし＝上の170mm・12pt＝全角40字）に画面側を合わせた
