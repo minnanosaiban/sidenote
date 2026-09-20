@@ -1028,37 +1028,19 @@ function buildPrintPara(paraEl) {
   return el;
 }
 
-// 「段組み」デザイン（サイドノートなし）：印刷版面を、改ページごとに区切った「節」ごとの段組みの箱（.print-cols）に
-// 入れ直す。段組み（multicol）の中の改ページ（break-after:page）は、ブラウザ（Chromeで確認）が「次の段へ」の
-// 改行として扱ってしまい、次の節が右の段の途中から始まってしまうため。箱と箱の間に置いた改ページは、普通の
-// ページ区切りとして効く（節ごとに新しいページの左の段から始まる）。
-// 節の末尾の空段落は外す：後ろに何も続かないので見た目に効かず、図でページがほぼ埋まっている時に空段落だけが
-// 次のページへ押し出されて、白紙のページが1枚できてしまうため（末尾が図のmdを取り込むと、編集用の空段落が付く）。
-function wrapPrintDocInColumnSections() {
-  if (currentTheme !== "columns" || notesByAnchor.size !== 0) return;
-  const isEmptyPara = (el) => el.classList.contains("print-para") && !el.querySelector("img, table, hr") &&
-    el.textContent.replace(/​/g, "").trim() === "";
-  const frag = document.createDocumentFragment();
-  let cols = null;
-  const closeSection = () => {
-    while (cols && cols.lastElementChild && isEmptyPara(cols.lastElementChild)) cols.lastElementChild.remove();
-    if (cols && !cols.children.length) cols.remove();
-    cols = null;
-  };
-  Array.from(printDocEl.children).forEach((el) => {
-    // .print-clearはfloatの回り込みを止めるための空の目印。段組みでは表・画像・区切り線をfloatにしないので不要で、
-    // 残すと節の最後の要素が「最後の子」でなくなる（style.cssの.print-cols > .print-img:last-child参照）。
-    if (el.classList.contains("print-clear")) { el.remove(); return; }
-    if (el.classList.contains("print-pagebreak")) { closeSection(); frag.appendChild(el); return; }
-    if (!cols) {
-      cols = document.createElement("div");
-      cols.className = "print-cols";
-      frag.appendChild(cols);
-    }
-    cols.appendChild(el);
+// 文書の末尾・改ページの直前（＝節の末尾）に並ぶ空の段落は、後ろに何も続かず見た目に効かないので、印刷版面から外す。
+// 残すと、ページがほぼ埋まっている時に空段落だけが次のページへ押し出されて、白紙のページが1枚できてしまう
+// （末尾が図のmdを取り込むと、編集用の空段落が付く。本文が大きい「2段組」で発生）。文書の途中の空行は、
+// ユーザーが打った余白なのでそのまま残す。
+function trimPrintSectionEndings() {
+  const isEmptyPara = (el) => el.classList.contains("print-para") && !el.querySelector("img, table, hr, .print-aside") &&
+    el.textContent.replace(/\u200b/g, "").trim() === "";
+  let endsSection = true;   // 直後が「文書の終わり」「改ページ」「すでに外した空段落」なら、この要素は節の末尾
+  Array.from(printDocEl.children).reverse().forEach((el) => {
+    if (el.classList.contains("print-pagebreak")) { endsSection = true; return; }
+    if (endsSection && isEmptyPara(el)) { el.remove(); return; }
+    endsSection = false;
   });
-  closeSection();
-  printDocEl.appendChild(frag);
 }
 
 function buildPrintDoc() {
@@ -1119,6 +1101,8 @@ function buildPrintDoc() {
     }
   });
 
+  trimPrintSectionEndings();
+
   // 左にfloatする画像・表・区切り線（と、その右隣のサイドノート）の直後に、高さ0の「フロート終了」の
   // 目印を置く。これが無いと、次の見出しの上の余白（margin-top）がfloatの高さに吸収されて、図の直下に
   // 見出しが密着してしまう（2026-09指摘：PDFの「６」の上）。詳しくはstyle.cssの.print-clear参照。
@@ -1134,7 +1118,6 @@ function buildPrintDoc() {
   // 組む（本文12pt・幅170mm＝全角1行40字。CSS側のbody.print-active.no-sidenoteが対応。
   // Markdownモード中は画面（#doc）の1行もこれと同じ40字に揃える＝style.cssの--line-max参照）。
   document.body.classList.toggle("no-sidenote", notesByAnchor.size === 0);
-  wrapPrintDocInColumnSections();
 
   // 直後にwindow.print()（またはプレビュー用のクラス切り替え）が呼ばれる前に、大量のfloat要素を
   // 書き換えた後のレイアウトを強制的に確定させる（読み取りアクセスでリフローを強制する定番の手法）。
@@ -1215,23 +1198,6 @@ async function preparePrintDoc(bw) {
   return failed;
 }
 
-// 「段組み」デザインのPDF（サイドバーなし）はA4横。@pageはテーマで切り替えられないため、印刷の直前だけ
-// ここで差し込み、印刷が終わったら外す（style.cssの「デザイン『段組み』」参照）。サイドノートがある文書は
-// 従来のサイドバー付きの版面（A4縦）のままにする。
-const PRINT_PAGE_STYLE_ID = "printPageStyle";
-function removePrintPageStyle() {
-  const old = document.getElementById(PRINT_PAGE_STYLE_ID);
-  if (old) old.remove();
-}
-function applyPrintPageStyle() {
-  removePrintPageStyle();
-  if (currentTheme !== "columns" || !document.body.classList.contains("no-sidenote")) return;
-  const style = document.createElement("style");
-  style.id = PRINT_PAGE_STYLE_ID;
-  style.textContent = "@page { size: A4 landscape; margin: 20mm; }";
-  document.head.appendChild(style);
-}
-
 async function runPdfPrint(bw) {
   pdfColorPanel.hidden = true;
   lastPdfColor = bw ? "bw" : "color";
@@ -1239,7 +1205,6 @@ async function runPdfPrint(bw) {
   try {
     const failed = await preparePrintDoc(bw);
     if (failed) setStatus(`${failed}枚の画像は白黒に変換できず、カラーのままです。`);
-    applyPrintPageStyle();
     document.body.classList.add("print-active");
     window.print();   // Chromeではこの呼び出しはダイアログが閉じるまでブロックするので、直後にクラスを外してよい
   } catch (err) {
@@ -1247,7 +1212,6 @@ async function runPdfPrint(bw) {
     setStatus("PDF化の準備に失敗しました。");
   } finally {
     document.body.classList.remove("print-active", "print-bw");
-    removePrintPageStyle();
   }
 }
 
@@ -1726,7 +1690,7 @@ const THEMES = [
   { id: "dark", label: "ダークUI", desc: "分析ツール風・集中読解" },
   { id: "wamodan", label: "和モダン", desc: "エディトリアルより余白広め" },
   { id: "site", label: "サイト", desc: "紺×朱、公開サイトの配色" },
-  { id: "columns", label: "段組み", desc: "和モダン＋本文16pt・A4横2段組みのPDF向け" },
+  { id: "twocol", label: "2段組", desc: "和モダン＋本文14pt（2ページ/枚の印刷で9〜10pt）" },
 ];
 const DEFAULT_THEME = "minimal";
 const THEME_KEY = "sidenote-theme-v1";
@@ -1744,7 +1708,7 @@ function applyTheme(themeId) {
 }
 
 // ---- ページ最下部「文字サイズ・1行文字数の目安」の注記 ----
-// フォント名だけデザイン（テーマ）ごとに違う（サイズ・段組み幅はテーマ共通の固定値）ので、
+// フォント名だけデザイン（テーマ）ごとに違う（サイズ・段組み幅はテーマ共通の固定値。例外は「2段組」＝NO_SIDEBAR_PRINT_LAYOUT）ので、
 // テーマ切り替えのたびにここで書き直す。画面用は--font-body、PDF用は--p-font-body
 // （themes.css参照。body.print-active時だけ定義される値なので、一瞬だけクラスを付けて読む＝
 // buildPrintDocPdf末尾の強制リフローと同じ「同期処理内で完結させ画面には反映しない」考え方）。
@@ -1778,12 +1742,13 @@ function probeHeadingMarginTopEm(level) {
   return fontPx ? marginPx / fontPx : 0;
 }
 
-// デザインごとに違う、PDF（サイドバーなし）の組み。ここに無いデザインは既定（本文12pt・1行40字・1段）。
-// 「段組み」はA4横の2段組みで本文16pt（style.cssの「デザイン『段組み』」・applyPrintPageStyle参照）。
+// デザインごとに違う、PDF（サイドバーなし）の組み。ここに無いデザインは既定（本文12pt・1行40字）。
+// 「2段組」は、PDFを2ページ/枚に割り付けて読む前提で、本文14pt・1行34字（A4縦・1段のまま。style.cssの
+// 「デザイン『2段組』」参照）。割り付けの縮小率はLetter横で約0.67倍・A4横で約0.71倍なので、本文は9.3〜9.9ptになる。
 const NO_SIDEBAR_PRINT_LAYOUT = {
-  columns: {
-    bodyPt: 16, headPt: [22, 19, 17], chars: 21, layout: "A4横の2段組み",
-    note: "「段組み」のh1〜h3は、Markdownの見出し（#〜###）の大きさです（ツールバーの見出しは項番設定どおり）。サイドノートがある文書は従来のサイドバー付きの版面になります。",
+  twocol: {
+    bodyPt: 14, headPt: [19, 17, 15], chars: 34, layout: "A4縦・1段",
+    note: "「2段組」は、PDFを2ページ/枚に割り付けた時に本文が9〜10pt（Letter横で約9.3pt、A4横で約9.9pt）になる大きさです。h1〜h3は、Markdownの見出し（#〜###）の大きさです（ツールバーの見出しは項番設定どおり）。サイドノートがある文書は従来のサイドバー付きの版面になります。",
   },
 };
 
@@ -1819,7 +1784,7 @@ function updateFooterInfo() {
       ["h3", `${printFont}・${headingSizeLabel("h3", "10.5pt")}`],
     ]) +
     section("PDF（サイドバーなし）", nsp ? [
-      ["本文", `${printFont}・${nsp.bodyPt}pt・${nsp.layout}（1段1行${nsp.chars}字）`],
+      ["本文", `${printFont}・${nsp.bodyPt}pt・${nsp.layout}（1行${nsp.chars}字）`],
       ["h1", `${printFont}・${nsp.headPt[0]}pt`],
       ["h2", `${printFont}・${nsp.headPt[1]}pt`],
       ["h3", `${printFont}・${nsp.headPt[2]}pt`],

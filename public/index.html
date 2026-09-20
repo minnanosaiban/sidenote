@@ -31,8 +31,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Old+Mincho:wght@400;600&family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <!-- ?v=NUM はキャッシュ対策。style.css/themes.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
-<link rel="stylesheet" href="style.css?v=30">
-<link rel="stylesheet" href="themes.css?v=11">
+<link rel="stylesheet" href="style.css?v=32">
+<link rel="stylesheet" href="themes.css?v=12">
 <!-- デザイン（テーマ）の初期反映を<body>のCSS読み込み前に済ませ、既定テーマへ一瞬だけ戻る
      ちらつき（FOUC）を防ぐ。app.js側の設定・保存内容と完全に同じキー・同じ既定値を使う。 -->
 <script>
@@ -82,7 +82,7 @@ try {
           <button type="button" class="theme-swatch" data-theme-id="dark">ダークUI</button>
           <button type="button" class="theme-swatch" data-theme-id="wamodan">和モダン</button>
           <button type="button" class="theme-swatch" data-theme-id="site">サイト</button>
-          <button type="button" class="theme-swatch" data-theme-id="columns">段組み</button>
+          <button type="button" class="theme-swatch" data-theme-id="twocol">2段組</button>
           <button type="button" class="theme-swatch theme-swatch-customize" id="customizeThemeBtn">カスタマイズ</button>
         </div>
       </div>
@@ -443,7 +443,7 @@ try {
 
 <!-- 文字サイズ・1行文字数の目安（目立たせない豆知識程度の位置づけ）。フォント名だけデザイン（テーマ）
      ごとに違うため、テーマ切り替え時・見出しスタイル（H1〜H3）設定変更時にJS側で書き直す
-     （app.js updateFooterInfo参照）。サイズ・段組み幅自体はテーマ共通の固定値（全角1文字≒1em換算）。 -->
+     （app.js updateFooterInfo参照）。サイズ・段組み幅自体はテーマ共通の固定値（全角1文字≒1em換算。「2段組」だけPDFの本文14pt・1行34字で、app.jsのNO_SIDEBAR_PRINT_LAYOUT参照）。 -->
 <footer class="app-footer" id="appFooter"></footer>
 
 <!-- 上段メニューの固定機能を廃止した代わりに、ある程度スクロールした後だけ現れる「トップに戻る」ボタン。
@@ -458,6 +458,6 @@ try {
 <!-- .jsonのdocHTML（共有相手から届いたファイルの可能性がある本文HTML）を無害化するため（同梱ライブラリ。
      THIRD_PARTY_NOTICES.md参照）。app.js側ではグローバルDOMPurifyとして参照する（sanitizeDocHtml参照）。 -->
 <script src="vendor/dompurify/purify.min.js"></script>
-<script src="app.js?v=40"></script>
+<script src="app.js?v=42"></script>
 </body>
 </html>
