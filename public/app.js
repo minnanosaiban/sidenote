@@ -19,6 +19,10 @@ const openedFileNoteEl = document.getElementById("openedFileNote");
 const saveBtn = document.getElementById("saveBtn");
 const saveMdBtn = document.getElementById("saveMdBtn");
 const savePdfBtn = document.getElementById("savePdfBtn");
+const pdfColorPanel = document.getElementById("pdfColorPanel");
+const pdfColorBtn = document.getElementById("pdfColorBtn");
+const pdfBwBtn = document.getElementById("pdfBwBtn");
+const pdfColorClose = document.getElementById("pdfColorClose");
 const saveDocxBtn = document.getElementById("saveDocxBtn");
 const printDocEl = document.getElementById("printDoc");
 const loadInput = document.getElementById("loadInput");
@@ -1110,15 +1114,108 @@ function buildPrintDocForCurrentMode() {
   buildPrintDoc();
 }
 
-savePdfBtn.onclick = () => {
+// ---- 「.pdf」ボタン：カラー／白黒を選んでから印刷ダイアログを開く ----
+// ボタンを押すと小さな選択パネル（#pdfColorPanel）が開き、「カラー」「白黒」のどちらかを選ぶとそのまま
+// 印刷ダイアログ（保存先で「PDFに保存」を選ぶ）が開く。Chromeの印刷ダイアログの「カラー」設定は
+// 「PDFに保存」では出ないため、色はこちらで決める。白黒は、画像を灰色の画像に変換し
+// （convertPrintImagesToGray）、文字・線・番号の色を全て黒にする（style.cssの.print-bw）。
+// 前回の選択はlocalStorageに覚えておき、パネルを開いた時にそれを濃く表示・フォーカスする
+// （Enterで同じ選択を繰り返せる）。
+const PDF_COLOR_KEY = "sidenote-pdf-color-v1";   // "color" | "bw"
+let lastPdfColor = "color";
+try { if (localStorage.getItem(PDF_COLOR_KEY) === "bw") lastPdfColor = "bw"; } catch (err) { /* noop */ }
+
+// 画像（data URL）を輝度だけの灰色の画像に変換して、そのdata URLを返す。透過PNGは白地に敷いてから変換する
+// （透明部分が黒く塗られないように）。元がJPEG（PDFモードのページ画像）ならJPEGのまま、それ以外はPNGで返す。
+// CanvasのctxのfilterはSafariが未対応なので使わず、画素を直接計算する。
+// 画像の読み込み完了を待つ。decode()は使わない（タブが裏に回っている間は解決せず、印刷が始まらなくなる）。
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("image load failed"));
+    img.src = src;
+  });
+}
+async function grayscaleDataUrl(src) {
+  const img = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height);   // 外部URLの画像だとここで例外になる（呼び出し側で握る）
+  const px = data.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const g = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000;
+    px[i] = px[i + 1] = px[i + 2] = g;
+  }
+  ctx.putImageData(data, 0, 0);
+  return /^data:image\/jpe?g/i.test(src) ? canvas.toDataURL("image/jpeg", 0.92) : canvas.toDataURL("image/png");
+}
+
+// #printDoc内の画像（本文の画像ブロック・PDFモードのページ画像）を全て灰色にする。戻り値＝変換できなかった
+// 画像の数（外部URLの画像など。その画像はカラーのまま残る）。
+async function convertPrintImagesToGray() {
+  let failed = 0;
+  for (const img of Array.from(printDocEl.querySelectorAll("img"))) {
+    try {
+      const gray = await grayscaleDataUrl(img.src);
+      await new Promise((resolve) => { img.onload = img.onerror = resolve; img.src = gray; });   // 差し替えた画像の読み込み完了まで待つ
+    } catch (err) {
+      console.error("grayscale failed for a print image:", err);
+      failed++;
+    }
+  }
+  return failed;
+}
+
+// 印刷版面を組み立て、白黒なら画像も灰色にして、印刷できる状態にする（.print-bwの付け外しもここ）。
+// 戻り値＝白黒に変換できなかった画像の数。
+async function preparePrintDoc(bw) {
+  buildPrintDocForCurrentMode();
+  const failed = bw ? await convertPrintImagesToGray() : 0;
+  document.body.classList.toggle("print-bw", bw);
+  return failed;
+}
+
+async function runPdfPrint(bw) {
+  pdfColorPanel.hidden = true;
+  lastPdfColor = bw ? "bw" : "color";
+  try { localStorage.setItem(PDF_COLOR_KEY, lastPdfColor); } catch (err) { /* noop */ }
   try {
-    buildPrintDocForCurrentMode();
+    const failed = await preparePrintDoc(bw);
+    if (failed) setStatus(`${failed}枚の画像は白黒に変換できず、カラーのままです。`);
     document.body.classList.add("print-active");
     window.print();   // Chromeではこの呼び出しはダイアログが閉じるまでブロックするので、直後にクラスを外してよい
+  } catch (err) {
+    console.error("PDF print failed:", err);
+    setStatus("PDF化の準備に失敗しました。");
   } finally {
-    document.body.classList.remove("print-active");
+    document.body.classList.remove("print-active", "print-bw");
   }
+}
+
+savePdfBtn.onclick = () => {
+  toggleDropdownPanel(pdfColorPanel, savePdfBtn);
+  if (pdfColorPanel.hidden) return;
+  pdfColorBtn.classList.toggle("is-last", lastPdfColor === "color");
+  pdfBwBtn.classList.toggle("is-last", lastPdfColor === "bw");
+  (lastPdfColor === "bw" ? pdfBwBtn : pdfColorBtn).focus();
 };
+pdfColorBtn.onclick = () => runPdfPrint(false);
+pdfBwBtn.onclick = () => runPdfPrint(true);
+pdfColorClose.onclick = () => { pdfColorPanel.hidden = true; savePdfBtn.focus(); };
+// パネルの外をクリックするかEscapeで閉じる（一時的な選択パネルなので、他のパネルと違い置きっぱなしにしない）。
+document.addEventListener("mousedown", (e) => {
+  if (pdfColorPanel.hidden || pdfColorPanel.contains(e.target) || savePdfBtn.contains(e.target)) return;
+  pdfColorPanel.hidden = true;
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !pdfColorPanel.hidden) { pdfColorPanel.hidden = true; savePdfBtn.focus(); }
+});
 
 // デバッグ用：印刷版面をネイティブの印刷ダイアログを開かずに画面上でそのままプレビューする（Ctrl+Alt+P）。
 document.addEventListener("keydown", (e) => {

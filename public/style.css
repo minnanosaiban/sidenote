@@ -667,6 +667,19 @@ body.print-active .print-h5 .print-aside, body.print-active .print-h6 .print-asi
 body.print-active .print-quote .print-aside { margin-right: -48mm; }
 body.print-active #printDoc sup { font-size: .75em; color: #666; }
 body.print-active #printDoc a { color: var(--p-accent, #ff4b4b); }
+/* 白黒で書き出す時（「.pdf」ボタンで「白黒」を選んだ時。bodyに.print-bwが付く）。画像はapp.jsが先に灰色へ
+   変換しておく（convertPrintImagesToGray）。ここでは文字・線・番号の色を、テーマの差し色（--p-accent）や
+   書き手ごとのサイドノートの色（青・赤）も含めて全て黒にする。サイドノートの色は文字に直接（インライン）
+   指定されているため、上書きには!importantが要る。 */
+body.print-active.print-bw .print-quote { border-left-color: #000; }
+body.print-active.print-bw #printDoc a,
+body.print-active.print-bw #printDoc sup,
+body.print-active.print-bw .print-aside { color: #000; }
+body.print-active.print-bw .print-aside span { color: #000 !important; }
+body.print-active.print-bw .print-pdf-mark-text { color: #000; }
+body.print-active.print-bw .print-pdf-mark-point,
+body.print-active.print-bw .print-pdf-mark-rect span { background: #000; }
+body.print-active.print-bw .print-pdf-mark-rect { border-color: #000; }
 
 /* サイドノートが1件も無い文書（buildPrintDoc()がbodyに付ける.no-sidenoteクラス）は、右の48mm欄を
    使わないぶん本文を大きく・広く組む（12pt）。幅は@page（A4・余白20mm＝2cm、上のルール参照）で
@@ -839,6 +852,18 @@ body.markdown-mode-active .para-table-note-btn {
 }
 .panel-apply-btn:hover { background: #262626; }
 .panel-hint { font-size: 11.5px; color: var(--tx-muted-2); line-height: 1.6; margin: 8px 0 0; }
+
+/* ── 「.pdf」ボタンで開く、カラー／白黒の選択パネル（app.js runPdfPrint参照）。前回選んだほうを濃く表示する。 ── */
+.pdf-color-panel { width: 260px; }
+.pdf-color-choices { display: flex; gap: 8px; }
+.pdf-color-btn {
+  flex: 1; height: 44px; border-radius: var(--tx-radius-btn); border: 1px solid var(--tx-border);
+  background: #fff; color: var(--tx-text); font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.pdf-color-btn:hover { background: #f4f4f5; }
+.pdf-color-btn.is-last { background: var(--tx-text); color: #fff; border-color: var(--tx-text); }
+.pdf-color-btn.is-last:hover { background: #262626; }
+.pdf-color-btn:focus-visible { outline: 2px solid var(--tx-text); outline-offset: 2px; }
 
 /* ── PDFモード（「開く」で.pdfを選んだ時） ──
    #doc（contenteditable本文）の代わりに#pdfViewerを表示する。ページ（.pdf-page）を縦に積み、

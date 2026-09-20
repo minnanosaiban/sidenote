@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Old+Mincho:wght@400;600&family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <!-- ?v=NUM はキャッシュ対策。style.css/themes.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
-<link rel="stylesheet" href="style.css?v=25">
+<link rel="stylesheet" href="style.css?v=26">
 <link rel="stylesheet" href="themes.css?v=10">
 <!-- デザイン（テーマ）の初期反映を<body>のCSS読み込み前に済ませ、既定テーマへ一瞬だけ戻る
      ちらつき（FOUC）を防ぐ。app.js側の設定・保存内容と完全に同じキー・同じ既定値を使う。 -->
@@ -160,7 +160,7 @@ try {
     <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
     .md
   </button>
-  <button id="savePdfBtn" type="button" class="btn-primary" data-tip="A4のPDFとして保存（印刷ダイアログが開くので、保存先で「PDFに保存」を選んでください）">
+  <button id="savePdfBtn" type="button" class="btn-primary" data-tip="A4のPDFとして保存（カラー／白黒を選ぶと印刷ダイアログが開くので、保存先で「PDFに保存」を選んでください）">
     <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zM1.6 11.85H0v3.999h.791v-1.342h.803q.43 0 .732-.173.305-.175.463-.474a1.4 1.4 0 0 0 .161-.677q0-.375-.158-.677a1.2 1.2 0 0 0-.46-.477q-.3-.18-.732-.179m.545 1.333a.8.8 0 0 1-.085.38.57.57 0 0 1-.238.241.8.8 0 0 1-.375.082H.788V12.48h.66q.327 0 .512.181.185.183.185.522m1.217-1.333v3.999h1.46q.602 0 .998-.237a1.45 1.45 0 0 0 .595-.689q.196-.45.196-1.084 0-.63-.196-1.075a1.43 1.43 0 0 0-.589-.68q-.396-.234-1.005-.234zm.791.645h.563q.371 0 .609.152a.9.9 0 0 1 .354.454q.118.302.118.753a2.3 2.3 0 0 1-.068.592 1.1 1.1 0 0 1-.196.422.8.8 0 0 1-.334.252 1.3 1.3 0 0 1-.483.082h-.563zm3.743 1.763v1.591h-.79V11.85h2.548v.653H7.896v1.117h1.606v.638z"/></svg>
     .pdf
   </button>
@@ -371,6 +371,23 @@ try {
   <p class="panel-hint">段落の先頭が「第１」「１、」「⑴」「ア、」のような型に一致する段落だけ、上の設定でインデント・ぶら下げをまとめて書き込みます。すでにインデント・ぶら下げを手動で変えた段落は対象から外れます（保護されます）。この設定はこの文書の.jsonに保存されます。</p>
 </div>
 
+<!-- 「.pdf」ボタンで開く、PDFの色（カラー／白黒）の選択パネル。選ぶとそのまま印刷ダイアログが開く
+     （app.js runPdfPrint参照）。白黒は文字を黒・画像を灰色にして版面を作る（style.cssの.print-bw参照）。
+     前回選んだほうを濃く表示して最初にフォーカスする（Enterで同じ選択を繰り返せる）。 -->
+<div class="dropdown-panel pdf-color-panel" id="pdfColorPanel" hidden>
+  <div class="dropdown-panel-head">
+    <span class="dropdown-panel-title">PDFの色</span>
+    <button type="button" class="dropdown-close" id="pdfColorClose" aria-label="閉じる">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>
+    </button>
+  </div>
+  <div class="pdf-color-choices">
+    <button type="button" class="pdf-color-btn" id="pdfColorBtn" data-tip="色をそのままPDFにします">カラー</button>
+    <button type="button" class="pdf-color-btn" id="pdfBwBtn" data-tip="文字を黒、画像を灰色にしてPDFにします">白黒</button>
+  </div>
+  <p class="panel-hint">白黒は、文字を黒・画像を灰色にして書き出します（白黒で印刷する時に選びます）。選ぶと印刷ダイアログが開きます。</p>
+</div>
+
 <div class="doc-wrap">
   <div class="doc-left">
     <div class="doc-label" id="docLabel">本文（Markdown・テキスト・画像）</div>
@@ -441,6 +458,6 @@ try {
 <!-- .jsonのdocHTML（共有相手から届いたファイルの可能性がある本文HTML）を無害化するため（同梱ライブラリ。
      THIRD_PARTY_NOTICES.md参照）。app.js側ではグローバルDOMPurifyとして参照する（sanitizeDocHtml参照）。 -->
 <script src="vendor/dompurify/purify.min.js"></script>
-<script src="app.js?v=34"></script>
+<script src="app.js?v=36"></script>
 </body>
 </html>
