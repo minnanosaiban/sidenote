@@ -66,6 +66,8 @@ const styleBtns = Array.from(formatToolbarEl.querySelectorAll("[data-style]"));
 const bulletListBtn = document.getElementById("bulletListBtn");
 const orderedListBtn = document.getElementById("orderedListBtn");
 const insertTableBtn = document.getElementById("insertTableBtn");
+const insertImageBtn = document.getElementById("insertImageBtn");
+const insertImageFileInput = document.getElementById("insertImageFile");
 const insertHrBtn = document.getElementById("insertHrBtn");
 const insertPageBreakBtn = document.getElementById("insertPageBreakBtn");
 const markdownModeToggle = document.getElementById("markdownModeToggle");
@@ -1969,6 +1971,26 @@ function insertTableBlock() {
   wrap.querySelector("th, td")?.focus();
 }
 insertTableBtn.onclick = insertTableBlock;
+
+// ---- 画像の挿入（書式ツールバーの「画像を挿入」。表・区切り線と同じ「現在の段落の直後に置く」方式） ----
+// 段落ホバーの「＋画像」（paraHoverFile）・Ctrl+Vの貼り付け・ドラッグ＆ドロップと同じ画像ブロック
+// （buildAndInsertImageBlock）を作る。画像はdata URLとして本文に持つので、Markdownで書き出すと
+// 「![](data:image/png;base64,…)」になり（blockParaToMarkdown）、そのMarkdownを取り込み直せば
+// 同じ画像ブロックに戻る。ファイル選択ダイアログを開くとカーソル位置が分からなくなる恐れがあるため、
+// 挿入先の段落はボタンを押した時点で控えておく（複数枚選んだ場合は、選んだ順にその直後へ並べる）。
+let insertImageAfterEl = null;
+insertImageBtn.onclick = () => {
+  insertImageAfterEl = getCurrentParaOrLast();
+  insertImageFileInput.click();
+};
+insertImageFileInput.onchange = (e) => {
+  const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith("image/"));
+  insertImageFileInput.value = "";
+  if (!files.length) return;
+  const afterEl = insertImageAfterEl && doc.contains(insertImageAfterEl) ? insertImageAfterEl : getCurrentParaOrLast();
+  insertImageAfterEl = null;
+  insertImageFilesAfter(files, afterEl);
+};
 
 // ---- 区切り線の挿入（書式ツールバーの「区切り線」。画像・表と同じ「現在の段落の直後に置く」方式） ----
 // Markdownの「---」貼り付け/取り込みで作られるものと同じ.para-hrブロック（buildHrParaEl）を使う。

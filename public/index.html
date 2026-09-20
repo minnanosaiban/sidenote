@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Old+Mincho:wght@400;600&family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <!-- ?v=NUM はキャッシュ対策。style.css/themes.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
-<link rel="stylesheet" href="style.css?v=21">
+<link rel="stylesheet" href="style.css?v=23">
 <link rel="stylesheet" href="themes.css?v=10">
 <!-- デザイン（テーマ）の初期反映を<body>のCSS読み込み前に済ませ、既定テーマへ一瞬だけ戻る
      ちらつき（FOUC）を防ぐ。app.js側の設定・保存内容と完全に同じキー・同じ既定値を使う。 -->
@@ -250,6 +250,11 @@ try {
     <!-- 表の挿入。現在の段落の直後に既定サイズ（見出し1行＋本文2行×3列）の表を挿入する。
          セルはそのまま書き換えられるが、行・列の追加/削除UIは無い（app.js insertTableBlock参照）。 -->
     <button type="button" class="fmt-btn" id="insertTableBtn" title="表を挿入（見出し1行＋本文2行×3列。セルはそのまま書き換えできます）">表を挿入</button>
+    <!-- 画像の挿入。ファイル選択で選んだ画像を、現在の段落の直後に画像ブロックとして挿入する（複数選択可。
+         段落ホバーの「＋画像」・Ctrl+V・ドラッグ＆ドロップと同じ画像ブロック。app.js insertImageBtn参照）。
+         画像はdata URLとして本文に内包されるため、Markdownで書き出すと ![](data:image/png;base64,…) になる。 -->
+    <button type="button" class="fmt-btn" id="insertImageBtn" title="画像を挿入（カーソルのある段落の直後に入ります。複数選択できます。Markdownで書き出すと ![](data:image/…;base64,…) の形になります）">画像を挿入</button>
+    <input type="file" id="insertImageFile" accept="image/*" multiple hidden>
     <!-- 区切り線の挿入。現在の段落の直後に「---」相当の水平線を1本挿入する（app.js insertHrBlock参照）。
          削除は画像・表と同じく、挿入された区切り線にマウスを乗せた時に出る×ボタン（bindHrParaEvents）で行う。 -->
     <button type="button" class="fmt-btn" id="insertHrBtn" title="区切り線を挿入（削除は挿入後、区切り線の×ボタンで行えます）">区切り線</button>
@@ -436,6 +441,6 @@ try {
 <!-- .jsonのdocHTML（共有相手から届いたファイルの可能性がある本文HTML）を無害化するため（同梱ライブラリ。
      THIRD_PARTY_NOTICES.md参照）。app.js側ではグローバルDOMPurifyとして参照する（sanitizeDocHtml参照）。 -->
 <script src="vendor/dompurify/purify.min.js"></script>
-<script src="app.js?v=32"></script>
+<script src="app.js?v=33"></script>
 </body>
 </html>
