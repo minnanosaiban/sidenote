@@ -556,9 +556,6 @@ body.print-active #printDoc {
   font-size: 10.5pt; line-height: 1.9; color: #000;
 }
 body.print-active #printDoc::after { content: ""; display: block; clear: both; }
-body.print-active .print-title {
-  font-family: var(--p-font-head, inherit); font-size: 14pt; font-weight: 700; margin: 0 0 16pt; clear: both;
-}
 /* 段落・見出し・引用・コードはfloatさせず、幅115mmの通常のブロックとして縦に積む（＝本文は自然な
    折り返し以外では絶対に改行されない）。サイドノートは対応する一文の直後としてインラインで埋め込み
    （buildPrintNode参照）、.print-asideのfloat:right＋マイナスマージンで段落の右の余白へ逃がす
@@ -684,20 +681,14 @@ body.print-active.markdown-mode-active .print-h3 { margin-top: var(--h3-before);
 body.print-active.markdown-mode-active .print-h4,
 body.print-active.markdown-mode-active .print-h5,
 body.print-active.markdown-mode-active .print-h6 { margin-top: var(--h456-before); }
-/* 文書の先頭の見出しは上の余白を付けない（画面の#doc > .para-hN:first-childと同じ）。画面ではファイル名欄が
-   #docの外にあるため、印刷でもファイル名（.print-title）の直後の見出しは「先頭」とみなす。 */
+/* 文書の先頭の見出しは上の余白を付けない（画面の#doc > .para-hN:first-childと同じ）。PDFの先頭には
+   ファイル名（タイトル欄）を出さないので、#printDocの最初の子＝本文の先頭の見出しがこれに当たる。 */
 body.print-active.markdown-mode-active #printDoc > .print-h1:first-child,
 body.print-active.markdown-mode-active #printDoc > .print-h2:first-child,
 body.print-active.markdown-mode-active #printDoc > .print-h3:first-child,
 body.print-active.markdown-mode-active #printDoc > .print-h4:first-child,
 body.print-active.markdown-mode-active #printDoc > .print-h5:first-child,
-body.print-active.markdown-mode-active #printDoc > .print-h6:first-child,
-body.print-active.markdown-mode-active .print-title + .print-h1,
-body.print-active.markdown-mode-active .print-title + .print-h2,
-body.print-active.markdown-mode-active .print-title + .print-h3,
-body.print-active.markdown-mode-active .print-title + .print-h4,
-body.print-active.markdown-mode-active .print-title + .print-h5,
-body.print-active.markdown-mode-active .print-title + .print-h6 { margin-top: 0; }
+body.print-active.markdown-mode-active #printDoc > .print-h6:first-child { margin-top: 0; }
 /* 改ページ（.print-pagebreak）の直後の見出しも、文書の先頭と同じく上の余白を付けない。改ページで前のページと
    切り離された、新しいページの先頭に、見出し用の余白ぶんの空きが残らないようにする（強制の改ページの直後は、
    ブラウザが上の余白を自動で切り捨てないため、ここで明示する）。 */

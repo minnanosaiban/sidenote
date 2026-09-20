@@ -1018,13 +1018,8 @@ function buildPrintPara(paraEl) {
 function buildPrintDoc() {
   printDocEl.innerHTML = "";
 
-  const title = projectTitle();
-  if (title) {
-    const titleEl = document.createElement("div");
-    titleEl.className = "print-title";
-    titleEl.textContent = title;
-    printDocEl.appendChild(titleEl);
-  }
+  // PDFの先頭には、ファイル名（タイトル欄）を出さない（2026-09指定。以前は先頭に太字で印字していた）。
+  // タイトル欄は.json/.md/.docxの保存名などに使うだけで、印刷（PDF化）には含めない。
 
   Array.from(doc.children).forEach((child) => {
     if (!child.classList || !child.classList.contains("para")) return;
@@ -3617,13 +3612,7 @@ function buildPrintDocPdf() {
   // no-sidenote（本文モード専用の広幅レイアウト）がテキストモードから引き継がれて残らないようにする。
   document.body.classList.remove("no-sidenote");
 
-  const title = projectTitle();
-  if (title) {
-    const titleEl = document.createElement("div");
-    titleEl.className = "print-title";
-    titleEl.textContent = title;
-    printDocEl.appendChild(titleEl);
-  }
+  // 本文モード（buildPrintDoc）と同じく、PDFの先頭にファイル名（タイトル欄）は出さない（2026-09指定）。
 
   const PRINT_WIDTH_MM = 115;   // 本文モードの.print-para/.print-imgと同じ幅に揃える
   Array.from(pdfViewerEl.querySelectorAll(".pdf-page")).forEach((pageEl) => {
