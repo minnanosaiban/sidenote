@@ -376,6 +376,12 @@ body.markdown-mode-active {
 .para-li { padding-left: 1em; text-indent: -1em; }
 .para-li[data-indent-level="1"] { padding-left: 2em; }
 .para-li[data-indent-level="2"] { padding-left: 3em; }
+/* リストの最後の項目の後ろは、段落と同じ余白（--gap-after）を空ける。項目同士は詰めたいので.para-li全体から
+   margin-bottomを外している（上の.para:not(.para-li)）が、それだと最後の項目の直後の段落（例：箇条書きの後の
+   「※…」の注記）が、行間だけでぴったりくっついてしまう（2026-09指摘）。「次が.para-liでない項目」だけに
+   余白を戻す（:has()で次の兄弟を見る）。直後が表・画像・見出しの時は、段落の後ろと同じく大きい方の余白に
+   なる（margin同士が重なる）。文書の末尾（.para:last-child＝余白0）は崩さない。 */
+.para-li:not(:last-child):not(:has(+ .para-li)) { margin-bottom: var(--gap-after); }
 /* display:inline-block + min-width:1emで、マーカー（「• 」等）の実際の幅をぶら下げインデント幅
    （.para-liのpadding-left:1em/text-indent:-1em）に合わせる。付けないと「• 」の実測幅が1emより
    狭く、1行目の本文だけ折り返し2行目より数px左に寄って見える（2026-09、箇条書きの行揃えが
@@ -587,6 +593,9 @@ body.print-active .print-quote, body.print-active .print-code {
 }
 /* リスト項目同士は画面（.para:not(.para-li)の余白から除外）と同じく詰める。 */
 body.print-active .print-li { margin-bottom: 0; }
+/* ただしリストの最後の項目の後ろは、段落と同じ余白を空ける（画面の.para-liと同じ。Markdownモードでは下で
+   --gap-afterに置き換える）。 */
+body.print-active .print-li:not(:has(+ .print-li)) { margin-bottom: .6em; }
 /* 箇条書き・番号付きのマーカー。画面の.li-markerと同じ考え方で1em幅の箱にし、1行目の本文の頭を折り返し行
    （.print-liのpadding-left:1em）に揃える。text-indent:0は、親のぶら下げ用text-indent:-1emを継承して
    マーカーの文字だけ左へずれるのを防ぐ（画面の.li-markerと同じ）。 */
@@ -695,6 +704,7 @@ body.print-active.markdown-mode-active .print-quote, body.print-active.markdown-
 }
 body.print-active.markdown-mode-active .print-h2 { margin-bottom: var(--h2-after); }
 body.print-active.markdown-mode-active .print-li { margin-bottom: 0; }
+body.print-active.markdown-mode-active .print-li:not(:has(+ .print-li)) { margin-bottom: var(--gap-after); }
 /* 表・画像・区切り線（float:left）の後ろも、段落の後ろの余白（--gap-after）と同じだけ空ける。これらの
    margin-bottomは10ptの固定値なので、テーマが段落の余白を広げている時（和モダン＝2em＝24pt）、表の直後の
    段落だけ上が詰まって見えた（画面の.para-tableと同じ指摘。2026-09）。em基準は表のfont-size（9pt）ではなく
