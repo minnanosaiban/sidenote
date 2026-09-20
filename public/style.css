@@ -167,6 +167,16 @@ body {
 .back-to-top .icon { width: 1.3em; height: 1.3em; }
 @media (max-width: 600px) { .back-to-top { right: 16px; bottom: 16px; } }
 
+/* 保存結果の短い知らせ（app.js showToast）。本文を編集している最中でも見えるよう、画面の下に出す。
+   押せない（pointer-events:none）ので、下の本文の操作を邪魔しない。 */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60;
+  max-width: min(90vw, 640px); padding: 10px 16px; border-radius: 8px; pointer-events: none;
+  background: #1c1d21; color: #fff; font-size: 13px; line-height: 1.5; box-shadow: 0 2px 10px rgba(0, 0, 0, .28);
+}
+.toast-error { background: #a12a2a; }
+.toast[hidden] { display: none; }
+
 /* ツールバーのボタンはtitle属性（ブラウザ標準の吹き出し＝枠線と影で囲まれ、見た目を制御できない）
    をやめ、data-tip属性＋この自前ツールチップに置き換える。枠線も影も付けず、
    濃い背景色のコントラストだけで浮かせる（2026-09-12、囲まれるのが好みでないという指摘を受けて変更）。 */
@@ -571,6 +581,7 @@ body.print-active .hero, body.print-active .toolbar-sticky, body.print-active .t
 body.print-active #saveStatus, body.print-active .doc-wrap, body.print-active .note-popover,
 body.print-active .dropdown-panel, body.print-active .app-footer,
 body.print-active .back-to-top { display: none !important; }
+body.print-active .toast { display: none !important; }
 body.print-active #printDoc {
   display: block !important;
   font-family: var(--p-font-body, "Source Sans Pro", system-ui, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif);
@@ -718,10 +729,6 @@ html[data-theme="twocol"] body.print-active.no-sidenote .print-table,
 html[data-theme="twocol"] body.print-active.no-sidenote .print-code { font-size: 12pt; }
 html[data-theme="twocol"] body.print-active.no-sidenote .print-table th,
 html[data-theme="twocol"] body.print-active.no-sidenote .print-table td { padding: 5pt 8pt; }
-/* 表の1列目（日付・ラベルなど短い項目が多い）は、文字が大きくなって幅が足りなくなっても「2024年5／月22日22／時」
-   のように細切れに折り返されないよう、最低5em（全角5文字ぶん）の幅を確保する。長い文字列はそのまま折り返せる。 */
-html[data-theme="twocol"] body.print-active.no-sidenote .print-table th:first-child,
-html[data-theme="twocol"] body.print-active.no-sidenote .print-table td:first-child { min-width: 5em; }
 
 /* ── Markdownモード時の印刷 ──
    Markdownモード中は、Web表示とPDF表示を同じ見た目にする（2026-09指定）。

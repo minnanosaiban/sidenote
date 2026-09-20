@@ -630,8 +630,39 @@ async function writeTextToFileHandle(handle, text) {
   await writable.close();
 }
 
-// 「.md」ボタン／Ctrl+Sの実体。openedMdFileHandleがあれば元のファイルへ直接上書きし、
-// 無ければ（非対応ブラウザ、または.md以外から始めた場合）従来通りダウンロードで保存する。
+// 保存結果の知らせ。ヒーローの#saveStatusは画面の一番上にあり、本文を編集している最中は見えない（Ctrl+Sの結果が
+// 分からず、上書きに失敗してダウンロードされても気づけなかった）ので、画面の下にも短く出す（2026-09-20）。
+let toastTimer = null;
+function showToast(msg, isError = false) {
+  let el = document.getElementById("toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "toast";
+    el.className = "toast";
+    el.setAttribute("role", "status");
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.toggle("toast-error", isError);
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, isError ? 9000 : 3000);
+}
+function notifySave(msg, isError = false) {
+  setStatus(msg);
+  showToast(msg, isError);
+}
+
+const MD_FILE_TYPES = [{ description: "Markdown", accept: { "text/markdown": [".md", ".markdown"], "text/plain": [".txt"] } }];
+
+// 「.md」ボタン／Ctrl+Sの実体。開いたファイルへの上書きを最優先にする：
+//  1) openedMdFileHandleがあれば、そこへ直接上書きする。
+//  2) 書き込めなかった時、またはハンドルが無い時（ドラッグ＆ドロップ等で取得できなかった場合）は、ダウンロードへ逃げずに
+//     「保存先を選ぶ」ダイアログ（showSaveFilePicker）を出す。同じファイルを選べば上書きになり、選んだファイルを以後の
+//     Ctrl+Sの上書き先にする。以前は、書き込みに1度失敗するとハンドルを捨て、以後ずっとダウンロード保存になっていた
+//     （2026-09-20、Ctrl+Sがなぜかダウンロードになったという指摘）。
+//  3) 保存先ダイアログが使えないブラウザ（Firefox/Safari等）、または.mdを開いていない時は、従来通りダウンロードで保存する。
+// 許可ダイアログで「拒否」された時や、保存先ダイアログを閉じた時は、勝手にダウンロードせず、保存していないことを知らせる。
 async function saveMarkdown() {
   const text = docToMarkdown();
   const namePart = projectTitle() ? `-${sanitizeFilename(projectTitle())}` : "";
@@ -640,17 +671,44 @@ async function saveMarkdown() {
   if (openedMdFileHandle) {
     try {
       await writeTextToFileHandle(openedMdFileHandle, text);
-      setStatus(`上書き保存：${filename}`);
+      notifySave(`上書き保存：${filename}`);
       return;
     } catch (err) {
       console.error(err);
-      setStatus(`${filename}への上書きに失敗したため、ダウンロードで保存します。`);
-      openedMdFileHandle = null;   // ハンドルが無効化された可能性があるため、以後は安全にダウンロード保存へ戻す
+      if (err && err.message === "readwrite permission denied") {
+        // 拒否は一時的なもの。ハンドルは捨てず、次のCtrl+Sでもう一度許可を求められるようにする。
+        notifySave(`書き込みが許可されなかったため、保存していません。もう一度Ctrl+Sを押して、許可してください：${filename}`, true);
+        return;
+      }
+      // それ以外（ファイルが見つからない・他のソフトが使用中・同期の都合など）は、下の「保存先を選ぶ」へ進む。
     }
   }
+
+  if (openedMdFilename && window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: MD_FILE_TYPES,
+        ...(openedMdFileHandle ? { startIn: openedMdFileHandle } : {}),
+      });
+      await writeTextToFileHandle(handle, text);
+      openedMdFileHandle = handle;
+      openedMdFilename = handle.name || filename;
+      updateOpenedFileNote();
+      notifySave(`上書き保存：${openedMdFilename}`);
+      return;
+    } catch (err) {
+      if (err && err.name === "AbortError") {
+        notifySave(`保存をキャンセルしました（保存されていません）：${filename}`, true);
+        return;
+      }
+      console.error(err);   // 保存先ダイアログ自体が使えなかった（操作から時間が空いた等）時は、下のダウンロードへ
+    }
+  }
+
   const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
   downloadBlob(blob, filename);
-  setStatus(`書き出しました：${filename}`);
+  notifySave(`書き出しました（ダウンロード）：${filename}`);
 }
 
 saveMdBtn.onclick = () => { saveMarkdown(); };
@@ -1045,30 +1103,6 @@ function trimPrintSectionEndings() {
   });
 }
 
-// 表の1列目（日時など）の先頭にある日付（「2024年5月22日」「令和6年5月22日」）は途中で折り返さず、後ろに時刻などが
-// 続くときはその日付の直後で改行する（幅の狭い列で「2024年5月／22日22時」と年月の途中で折れるのを避ける。
-// 2026-09-20）。印刷用に複製した表（printTable）にだけ手を入れる：画面の表（＝.md保存の元）のセルにBRを入れると、
-// .mdへ書き出す時にセル内の改行が表の行を2行に割ってしまい、表が壊れるため。
-const TABLE_DATE_RE = /^(\s*(?:(?:令和|平成|昭和)[0-9０-９]{1,2}|[0-9０-９]{4})年[0-9０-９]{1,2}月[0-9０-９]{1,2}日)\s*([\s\S]*)$/;
-function keepDateTogetherInFirstColumn(table) {
-  table.querySelectorAll("tr > td:first-child").forEach((td) => {
-    const text = td.firstChild;
-    if (!text || text.nodeType !== Node.TEXT_NODE) return;   // 太字などで始まるセルは対象外
-    const m = text.textContent.match(TABLE_DATE_RE);
-    if (!m) return;
-    const date = document.createElement("span");
-    date.style.whiteSpace = "nowrap";
-    date.textContent = m[1].trim();
-    td.insertBefore(date, text);
-    if (m[2]) {
-      td.insertBefore(document.createElement("br"), text);
-      text.textContent = m[2];
-    } else {
-      text.remove();
-    }
-  });
-}
-
 function buildPrintDoc() {
   printDocEl.innerHTML = "";
 
@@ -1095,7 +1129,6 @@ function buildPrintDoc() {
         const printTable = document.createElement("table");
         printTable.className = "print-table";
         printTable.innerHTML = srcTable.innerHTML;
-        keepDateTogetherInFirstColumn(printTable);
         printDocEl.appendChild(printTable);
       }
       const badge = child.querySelector(".note-anchor");
