@@ -541,8 +541,10 @@ function paraInlineToMarkdown(paraEl) {
     .trim();
 }
 
+// セル内の改行（Shift+EnterのBR。paraInlineToMarkdownでは"\n"）は、表の行を割らないよう<br>で書く（GFM・GitHubと同じ。
+// md-parser.jsのsplitTableRowが逆に"\n"へ戻す。2026-09-20。以前は生の改行のまま書き出していたため、保存すると表が壊れた）。
 function tableRowToMarkdown(cells) {
-  return `| ${cells.map((c) => c.replace(/\|/g, "\\|")).join(" | ")} |`;
+  return `| ${cells.map((c) => c.replace(/\|/g, "\\|").replace(/\n/g, "<br>")).join(" | ")} |`;
 }
 
 // 1ブロック（.para系要素）→ Markdown文字列（前後の空行は呼び出し側で調整する）。
@@ -1043,6 +1045,30 @@ function trimPrintSectionEndings() {
   });
 }
 
+// 表の1列目（日時など）の先頭にある日付（「2024年5月22日」「令和6年5月22日」）は途中で折り返さず、後ろに時刻などが
+// 続くときはその日付の直後で改行する（幅の狭い列で「2024年5月／22日22時」と年月の途中で折れるのを避ける。
+// 2026-09-20）。印刷用に複製した表（printTable）にだけ手を入れる：画面の表（＝.md保存の元）のセルにBRを入れると、
+// .mdへ書き出す時にセル内の改行が表の行を2行に割ってしまい、表が壊れるため。
+const TABLE_DATE_RE = /^(\s*(?:(?:令和|平成|昭和)[0-9０-９]{1,2}|[0-9０-９]{4})年[0-9０-９]{1,2}月[0-9０-９]{1,2}日)\s*([\s\S]*)$/;
+function keepDateTogetherInFirstColumn(table) {
+  table.querySelectorAll("tr > td:first-child").forEach((td) => {
+    const text = td.firstChild;
+    if (!text || text.nodeType !== Node.TEXT_NODE) return;   // 太字などで始まるセルは対象外
+    const m = text.textContent.match(TABLE_DATE_RE);
+    if (!m) return;
+    const date = document.createElement("span");
+    date.style.whiteSpace = "nowrap";
+    date.textContent = m[1].trim();
+    td.insertBefore(date, text);
+    if (m[2]) {
+      td.insertBefore(document.createElement("br"), text);
+      text.textContent = m[2];
+    } else {
+      text.remove();
+    }
+  });
+}
+
 function buildPrintDoc() {
   printDocEl.innerHTML = "";
 
@@ -1069,6 +1095,7 @@ function buildPrintDoc() {
         const printTable = document.createElement("table");
         printTable.className = "print-table";
         printTable.innerHTML = srcTable.innerHTML;
+        keepDateTogetherInFirstColumn(printTable);
         printDocEl.appendChild(printTable);
       }
       const badge = child.querySelector(".note-anchor");
@@ -1674,13 +1701,23 @@ markdownModeToggle.onchange = () => {
 };
 applyMarkdownMode();
 
-// 上段メニュー固定の代わりの「トップに戻る」ボタン：ヒーローを過ぎてある程度スクロールした時だけ
-// 出す（常時出しっぱなしだと最初から見えてしまい、固定機能の代わりという役割が伝わらないため）。
-const BACK_TO_TOP_SHOW_AT = 400;
-document.addEventListener("scroll", () => {
-  backToTopBtn.hidden = window.scrollY < BACK_TO_TOP_SHOW_AT;
-});
-backToTopBtn.onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
+// 上段メニュー固定の代わりの「↑」ボタン：ページの一番上（ヒーロー）ではなく、「新しい作業」「開く」などの
+// ファイル操作の行（#toolbarMenu1）の位置へ戻す（2026-09指定。ヒーローまで戻ると、そこからまた下へ
+// スクロールし直す手間が要るため）。その行が画面の上へ外れて見えなくなった時だけボタンを出す（常時
+// 出しっぱなしだと最初から見えてしまい、固定機能の代わりという役割が伝わらないため。行が見えている間に
+// 出すと、押しても動かないボタンになってしまう）。
+const toolbarMenu1El = document.getElementById("toolbarMenu1");
+const BACK_TO_MENU_MARGIN = 12;   // 戻った時に、行の上へ残す余白（px）
+function updateBackToTopBtn() {
+  backToTopBtn.hidden = toolbarMenu1El.getBoundingClientRect().bottom > 0;
+}
+document.addEventListener("scroll", updateBackToTopBtn);
+window.addEventListener("resize", updateBackToTopBtn);
+backToTopBtn.onclick = () => {
+  const top = toolbarMenu1El.getBoundingClientRect().top + window.scrollY - BACK_TO_MENU_MARGIN;
+  window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+};
+updateBackToTopBtn();
 
 // ---- デザイン（テーマ）切替 ----
 const THEMES = [

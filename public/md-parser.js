@@ -72,7 +72,10 @@ function splitTableRow(line) {
     cur += t[i];
   }
   cells.push(cur.trim());
-  return cells;
+  // セル内の改行は、Markdownでは<br>と書く（GFM・GitHubと同じ。表は1行が1レコードなので生の改行は書けない）。
+  // inlineToHtmlが"\n"を<br>へ戻すので、ここで"\n"にしておく。app.js側のtableRowToMarkdownが逆の変換をする
+  // （2026-09-20。以前は<br>が文字のまま表示され、書き出しも生の改行で表が壊れていた）。
+  return cells.map((c) => c.replace(/<br\s*\/?>/gi, "\n"));
 }
 
 function isTableSeparatorRow(line) {
