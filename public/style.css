@@ -239,7 +239,21 @@ body {
 /* ── デザイン：ヒーロー内に常時表示するグリッド（当初のアプリイメージ通り、ドロップダウンでは
    ない。ボタンは名前のみ・4列×2行。2026-09、設定パネルから移設）── */
 .hero-theme-section { margin-top: 28px; }
-.hero-theme-title { font-size: 16px; font-weight: 700; color: var(--tx-text); margin-bottom: 12px; }
+.hero-theme-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.hero-theme-title { font-size: 16px; font-weight: 700; color: var(--tx-text); }
+/* ダークモードのトグル（本文の画面表示だけを暗くする。「デザイン」の隣の太陽アイコン）。
+   2026-09、それまで独立した8つ目のテーマだった「ダークUI」を廃止し、どのデザインにも重ねられる
+   トグルへ作り替えた（実装はthemes.cssのhtml.dark-mode、app.js toggleDarkMode参照）。
+   選択状態の見た目は.theme-swatch.selectedと揃える（黒地・白文字への反転）。 */
+.dark-mode-toggle-btn {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 28px; height: 28px; padding: 0; border: 1px solid var(--tx-border); border-radius: 50%;
+  background: var(--tx-bg-muted); color: var(--tx-text); cursor: pointer;
+  box-shadow: var(--tx-shadow-sm); transition: box-shadow .15s, background .15s;
+}
+.dark-mode-toggle-btn:hover { background: #e8e8ea; box-shadow: var(--tx-shadow-md); }
+.dark-mode-toggle-btn.active { background: var(--tx-text); color: #fff; border-color: var(--tx-text); }
+.dark-mode-toggle-btn .icon { width: 15px; height: 15px; }
 .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 460px; }
 /* グレー地＋影で「押せるボタン」らしい立体感を出す（2026-09、白地の枠線だけだと
    ボタンに見えないという指摘を受けて変更）。選択中は.btn-primaryと同じ黒地・白文字に反転させ、
@@ -718,24 +732,37 @@ body.print-active.no-sidenote .print-table, body.print-active.no-sidenote .print
 }
 body.print-active.no-sidenote .print-img { width: 170mm; max-width: 170mm; }
 
-/* ── デザイン「2段組」（themes.css／app.js THEMES）：サイドノートなしのPDFを、本文14ptで組む ──
+/* ── デザイン「和風２段」「フラット２段」（themes.css／app.js THEMES。内部idはtwocol／flat2col）：
+   サイドノートなしのPDFを、本文14ptで組む ──
    PDFを「2ページ/枚」（A4縦の2ページを1枚に左右に並べる印刷。ツールの外で行う）にすると、1ページが約0.67倍
    （Letter横）〜0.71倍（A4横）に縮み、本文12ptは8pt台になって読みにくい。そこで本文を14ptにして、割り付け後に
    9〜10ptになるようにする（Letter横で9.3pt、A4横で9.9pt）。用紙・段数は変えない（A4縦・1段のまま）。
    見出しは本文14ptに比例（サイドバー付きの比率 14.5：12.5：11：10.5 ≒ 1.38：1.19：1.05：1）。1行は本文幅170mm÷14pt＝
    全角34字（34字＝167.9mm。35字は172.9mmで入らない）。表・コードの文字も、割り付け後に6pt台へ潰れないよう
-   従来の9ptから12ptへ上げる。余白などem指定のものは、文字が大きくなったぶん比例して広がる。 */
-html[data-theme="twocol"] body.print-active.no-sidenote #printDoc { font-size: 14pt; }
-html[data-theme="twocol"] body.print-active.no-sidenote .print-h1 { font-size: 19pt; }
-html[data-theme="twocol"] body.print-active.no-sidenote .print-h2 { font-size: 17pt; }
-html[data-theme="twocol"] body.print-active.no-sidenote .print-h3 { font-size: 15pt; }
+   従来の9ptから12ptへ上げる。余白などem指定のものは、文字が大きくなったぶん比例して広がる。
+   この倍率は色・書体に依らない計算なので、和風２段（twocol）・フラット２段（flat2col）でセレクタを共有する。 */
+html[data-theme="twocol"] body.print-active.no-sidenote #printDoc,
+html[data-theme="flat2col"] body.print-active.no-sidenote #printDoc { font-size: 14pt; }
+html[data-theme="twocol"] body.print-active.no-sidenote .print-h1,
+html[data-theme="flat2col"] body.print-active.no-sidenote .print-h1 { font-size: 19pt; }
+html[data-theme="twocol"] body.print-active.no-sidenote .print-h2,
+html[data-theme="flat2col"] body.print-active.no-sidenote .print-h2 { font-size: 17pt; }
+html[data-theme="twocol"] body.print-active.no-sidenote .print-h3,
+html[data-theme="flat2col"] body.print-active.no-sidenote .print-h3 { font-size: 15pt; }
 html[data-theme="twocol"] body.print-active.no-sidenote .print-h4,
 html[data-theme="twocol"] body.print-active.no-sidenote .print-h5,
-html[data-theme="twocol"] body.print-active.no-sidenote .print-h6 { font-size: 14pt; }
+html[data-theme="twocol"] body.print-active.no-sidenote .print-h6,
+html[data-theme="flat2col"] body.print-active.no-sidenote .print-h4,
+html[data-theme="flat2col"] body.print-active.no-sidenote .print-h5,
+html[data-theme="flat2col"] body.print-active.no-sidenote .print-h6 { font-size: 14pt; }
 html[data-theme="twocol"] body.print-active.no-sidenote .print-table,
-html[data-theme="twocol"] body.print-active.no-sidenote .print-code { font-size: 12pt; }
+html[data-theme="twocol"] body.print-active.no-sidenote .print-code,
+html[data-theme="flat2col"] body.print-active.no-sidenote .print-table,
+html[data-theme="flat2col"] body.print-active.no-sidenote .print-code { font-size: 12pt; }
 html[data-theme="twocol"] body.print-active.no-sidenote .print-table th,
-html[data-theme="twocol"] body.print-active.no-sidenote .print-table td { padding: 5pt 8pt; }
+html[data-theme="twocol"] body.print-active.no-sidenote .print-table td,
+html[data-theme="flat2col"] body.print-active.no-sidenote .print-table th,
+html[data-theme="flat2col"] body.print-active.no-sidenote .print-table td { padding: 5pt 8pt; }
 
 /* ── Markdownモード時の印刷 ──
    Markdownモード中は、Web表示とPDF表示を同じ見た目にする（2026-09指定）。

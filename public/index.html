@@ -31,14 +31,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Old+Mincho:wght@400;600&family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <!-- ?v=NUM はキャッシュ対策。style.css/themes.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
-<link rel="stylesheet" href="style.css?v=38">
-<link rel="stylesheet" href="themes.css?v=12">
-<!-- デザイン（テーマ）の初期反映を<body>のCSS読み込み前に済ませ、既定テーマへ一瞬だけ戻る
+<link rel="stylesheet" href="style.css?v=39">
+<link rel="stylesheet" href="themes.css?v=13">
+<!-- デザイン（テーマ）・ダークモードの初期反映を<body>のCSS読み込み前に済ませ、既定へ一瞬だけ戻る
      ちらつき（FOUC）を防ぐ。app.js側の設定・保存内容と完全に同じキー・同じ既定値を使う。 -->
 <script>
 try {
   var t = localStorage.getItem("sidenote-theme-v1");
   if (t) document.documentElement.dataset.theme = t;
+  if (localStorage.getItem("sidenote-dark-mode-v1") === "1") document.documentElement.classList.add("dark-mode");
 } catch (e) { /* noop */ }
 </script>
 </head>
@@ -54,7 +55,7 @@ try {
   <div class="hero-inner">
     <div class="hero-left">
       <h1 class="hero-title">サイドノート作成ツール</h1>
-      <p class="hero-desc">テキスト・Markdown・PDFに注釈を。<br>書式や項番も整えられます。</p>
+      <p class="hero-desc">テキスト・Markdown・PDFに注釈を。</p>
       <a class="btn-outline hero-cta" href="help.html">使い方を読む</a>
       <div class="hero-shortcuts">
         <div class="hero-shortcuts-title">ショートカット対応</div>
@@ -72,17 +73,25 @@ try {
 
       <!-- 「デザイン」は当初のアプリイメージ通り、ドロップダウンではなくヒーロー内に常時表示する
            グリッドにする（ボタンは名前のみ・説明文は持たない）。「カスタマイズ」だけは他と違い
-           テーマを適用せず「項番設定」パネルを開く特殊ボタン（data-theme-idを持たせない。app.js参照）。 -->
+           テーマを適用せず「項番設定」パネルを開く特殊ボタン（data-theme-idを持たせない。app.js参照）。
+           2026-09、並びを「公文書風→雑誌風→和モダン→和風２段」「フラット→フラット２段→サイト→
+           カスタマイズ」に変更。「ダークUI」は独立したテーマから外し、右の太陽アイコンのトグルへ
+           作り替えた（本文だけを暗くする。themes.css・app.js toggleDarkMode参照）。 -->
       <div class="hero-theme-section">
-        <div class="hero-theme-title">デザイン</div>
+        <div class="hero-theme-head">
+          <span class="hero-theme-title">デザイン</span>
+          <button type="button" id="darkModeToggleBtn" class="dark-mode-toggle-btn" title="ダークモード（本文だけを暗くします）" aria-pressed="false">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708"/></svg>
+          </button>
+        </div>
         <div class="theme-grid" id="themeGrid">
-          <button type="button" class="theme-swatch" data-theme-id="editorial">雑誌風</button>
           <button type="button" class="theme-swatch" data-theme-id="minimal">公文書風</button>
-          <button type="button" class="theme-swatch" data-theme-id="flat">フラット</button>
-          <button type="button" class="theme-swatch" data-theme-id="dark">ダークUI</button>
+          <button type="button" class="theme-swatch" data-theme-id="editorial">雑誌風</button>
           <button type="button" class="theme-swatch" data-theme-id="wamodan">和モダン</button>
+          <button type="button" class="theme-swatch" data-theme-id="twocol">和風２段</button>
+          <button type="button" class="theme-swatch" data-theme-id="flat">フラット</button>
+          <button type="button" class="theme-swatch" data-theme-id="flat2col">フラット２段</button>
           <button type="button" class="theme-swatch" data-theme-id="site">サイト</button>
-          <button type="button" class="theme-swatch" data-theme-id="twocol">2段組</button>
           <button type="button" class="theme-swatch theme-swatch-customize" id="customizeThemeBtn">カスタマイズ</button>
         </div>
       </div>
@@ -179,7 +188,7 @@ try {
        ボタンだけに揃え、編集メニューに関する2つのチェックボックス＝表示/固定は分けずどちらも
        下段側にまとめる方が分かりやすいという指摘を受けて）。 -->
   <div class="menu-pin-toggles">
-    <label class="menu-pin-toggle"><input type="checkbox" id="menu2VisibleToggle">編集メニューを表示</label>
+    <label class="menu-pin-toggle"><input type="checkbox" id="menu2VisibleToggle">拡張機能を表示</label>
   </div>
 </div>
 </div>
@@ -503,6 +512,6 @@ try {
 <!-- .jsonのdocHTML（共有相手から届いたファイルの可能性がある本文HTML）を無害化するため（同梱ライブラリ。
      THIRD_PARTY_NOTICES.md参照）。app.js側ではグローバルDOMPurifyとして参照する（sanitizeDocHtml参照）。 -->
 <script src="vendor/dompurify/purify.min.js"></script>
-<script src="app.js?v=48"></script>
+<script src="app.js?v=49"></script>
 </body>
 </html>

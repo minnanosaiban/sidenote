@@ -1,11 +1,12 @@
 /* ==================================================================
-   デザイン（テーマ）定義。5案とも本文（#doc・サイドノート・印刷）だけに効く
-   CSS変数のセットで、アプリのツールバー等（style.css側）には影響しない。
+   デザイン（テーマ）定義。本文（#doc・サイドノート・印刷）だけに効くCSS変数のセットで、
+   アプリのツールバー等（style.css側）には影響しない。
    html[data-theme="..."] はapp.js（デザインパネル）とindex.html冒頭のインライン
    スクリプト（初期表示のちらつき防止）の両方から設定される。
-   2026-09-12、ダークUI以外の4テーマ（エディトリアル／ミニマル／フラット／和モダン）は
-   --paperを共通の薄いグレー(#f4f5f7＝アプリ全体の背景色と同じ)に統一。テーマごとの違いは
-   ink・accent・surface・フォントなど紙色以外の要素で出す。ダークUIだけ独自の紙色のまま。
+   2026-09-12、テーマ間で--paperを共通の薄いグレー(#f4f5f7＝アプリ全体の背景色と同じ)に統一。
+   テーマごとの違いはink・accent・surface・フォントなど紙色以外の要素で出す。
+   2026-09、末尾の「ダークモード」トグル（html.dark-mode）だけは例外で、どのテーマの上にも
+   重なって独自の紙色（暗いチャコール）にする。
    ================================================================== */
 
 /* 既定値（= "minimal"。JS未実行時や不正なテーマ名のフォールバックにもなる）。
@@ -99,17 +100,19 @@ html[data-theme="flat"] {
   --font-mono: 'JetBrains Mono', monospace;
 }
 
-/* ④ ダークUI：分析ツール風・集中読解向け。2026-09、地と文字が黒白に近く白黒コントラストが
-   きつすぎるという指摘を受け、GitHub/VSCode等の定番ダークUIに近い柔らかいチャコールへ調整
-   （paperを持ち上げ・inkを少し落として最大コントラストを避ける。muted/accentは変更なし）。 */
-html[data-theme="dark"] {
-  --paper: #22262c;
-  --ink: #c9cdd6;
-  --muted: #8b93a3;
-  --accent: #e0a63f;
-  --rule: #383e48;
-  --surface: #2b3038;
-  --radius: 8px;
+/* ④ フラット２段：フラットと色・フォントは同じで、⑦「和風２段」と同じ理由・同じ倍率で
+   本文・見出しだけ拡大したもの（2026-09、ダークUIをテーマ選択から外し、本文だけを暗くする
+   トグルへ作り替えたことで空いた枠に新設）。サイズそのものは⑦のコメント・style.cssの
+   「デザイン『2段組』」を参照（本文12pt→14ptの比率がテーマ非依存の計算のため、セレクタへ
+   data-theme="flat2col"を足すだけで済む。この定義ブロックには色・フォントのみ置く）。 */
+html[data-theme="flat2col"] {
+  --paper: #f4f5f7;
+  --ink: #1f2530;
+  --muted: #6b7484;
+  --accent: #3d5a99;
+  --rule: #dfe3ea;
+  --surface: #ffffff;
+  --radius: 10px;
   --font-head: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
   --font-body: 'Noto Sans JP', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -172,12 +175,16 @@ html[data-theme="site"] {
   --h2-after: 1.6em;
 }
 
-/* ⑦ 2段組：和モダンをベースに、PDFを「2ページ/枚」（A4縦の2ページを1枚に左右に並べる印刷）にしても読める大きさにした
-   デザイン（2026-09、ノートと差し替え）。色・書体・余白は和モダンと同じ。変えたのは文字の大きさと1行の字数だけ：
-   サイドノートなしのPDFの本文を12pt→14ptにし、2ページ/枚にした時に9〜10ptになるようにする（Letter横＝約0.67倍で9.3pt、
-   A4横＝約0.71倍で9.9pt）。見出し（H1〜H3）もそれに比例して拡大し（本文14ptに対しH1 19pt／H2 17pt／H3 15pt）、
-   1行は170mm÷14ptで全角34字（画面のMarkdownモードも同じ34字）。用紙・段数（A4縦・1段）は変えない。
-   PDFの組みはstyle.cssの「デザイン『2段組』」、ページ下部の目安表示はapp.jsのNO_SIDEBAR_PRINT_LAYOUT参照。 */
+/* ⑦ 和風２段（内部id・localStorageの保存値は旧称のままtwocol）：和モダンをベースに、PDFを
+   「2ページ/枚」（A4縦の2ページを1枚に左右に並べる印刷）にしても読める大きさにしたデザイン
+   （2026-09、ノートと差し替え。同「2段組」から改称）。色・書体・余白は和モダンと同じ。変えたのは
+   文字の大きさと1行の字数だけ：サイドノートなしのPDFの本文を12pt→14ptにし、2ページ/枚にした時に
+   9〜10ptになるようにする（Letter横＝約0.67倍で9.3pt、A4横＝約0.71倍で9.9pt）。見出し（H1〜H3）も
+   それに比例して拡大し（本文14ptに対しH1 19pt／H2 17pt／H3 15pt）、1行は170mm÷14ptで全角34字
+   （画面のMarkdownモードも同じ34字）。用紙・段数（A4縦・1段）は変えない。この拡大率はテーマの
+   色・書体に依らない計算（本文の基準12ptに対する比率）なので、④「フラット２段」も同じ数値を
+   セレクタへ足すだけで共有している（下の.para-h1〜・--line-max・style.cssの
+   「デザイン『2段組』」参照）。ページ下部の目安表示はapp.jsのNO_SIDEBAR_PRINT_LAYOUT参照。 */
 html[data-theme="twocol"] {
   --paper: #f4f5f7;
   --ink: #211f1c;
@@ -192,20 +199,21 @@ html[data-theme="twocol"] {
   --h2-before: 6.4em;   /* 余白は和モダンと同じ値（emなので、文字が大きくなったぶん実寸は比例して広がる） */
   --gap-after: 2em;
 }
-/* 画面の見出しの大きさも、PDFと同じ比率（本文14pt：H1 19pt／H2 17pt／H3 15pt）にそろえる。 */
-html[data-theme="twocol"] .para-h1 { font-size: 1.36em; }
-html[data-theme="twocol"] .para-h2 { font-size: 1.21em; }
-html[data-theme="twocol"] .para-h3 { font-size: 1.07em; }
-html[data-theme="twocol"] .para-h4, html[data-theme="twocol"] .para-h5, html[data-theme="twocol"] .para-h6 { font-size: 1em; }
+/* 画面の見出しの大きさも、PDFと同じ比率（本文14pt：H1 19pt／H2 17pt／H3 15pt）にそろえる。
+   flat2col（フラット２段）も同じ比率なのでセレクタをまとめる。 */
+html[data-theme="twocol"] .para-h1, html[data-theme="flat2col"] .para-h1 { font-size: 1.36em; }
+html[data-theme="twocol"] .para-h2, html[data-theme="flat2col"] .para-h2 { font-size: 1.21em; }
+html[data-theme="twocol"] .para-h3, html[data-theme="flat2col"] .para-h3 { font-size: 1.07em; }
+html[data-theme="twocol"] .para-h4, html[data-theme="twocol"] .para-h5, html[data-theme="twocol"] .para-h6,
+html[data-theme="flat2col"] .para-h4, html[data-theme="flat2col"] .para-h5, html[data-theme="flat2col"] .para-h6 { font-size: 1em; }
 /* Markdownモードの画面の1行の長さ＝PDFの1行の字数（170mm÷全角14pt＝34字。0.1emは端数の余裕）。 */
-html[data-theme="twocol"] body.markdown-mode-active { --line-max: 34.1em; }
+html[data-theme="twocol"] body.markdown-mode-active, html[data-theme="flat2col"] body.markdown-mode-active { --line-max: 34.1em; }
 
 /* ------------------------------------------------------------------
    印刷（PDF化）用のフォント・差し色。印刷は常に白地・黒文字が基本方針なので
    --paper/--ink/--surfaceは印刷側では使わず、フォントと差し色（--p-*）だけ
    テーマに応じて変える（style.css側のbody.print-active関連ルールが参照する）。
-   ダークテーマの --accent（#e0a63f）は白地の上では明るすぎて読みにくいため、
-   印刷用にはより濃い色へ調整している。
+   下の「ダークモード」トグル（本文の画面表示だけを暗くする）は印刷には一切影響しない。
    ------------------------------------------------------------------ */
 body.print-active {
   --p-font-head: "Source Sans Pro", system-ui, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
@@ -222,15 +230,12 @@ html[data-theme="minimal"] body.print-active {
   --p-font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
   --p-accent: #8a1f1f;
 }
-html[data-theme="flat"] body.print-active {
+/* フラット２段はフラットと同じ書体・差し色（PDFの本文14ptはstyle.cssの「デザイン『2段組』」）。 */
+html[data-theme="flat"] body.print-active,
+html[data-theme="flat2col"] body.print-active {
   --p-font-head: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
   --p-font-body: 'Noto Sans JP', sans-serif;
   --p-accent: #3d5a99;
-}
-html[data-theme="dark"] body.print-active {
-  --p-font-head: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
-  --p-font-body: 'Noto Sans JP', sans-serif;
-  --p-accent: #b5791a;
 }
 html[data-theme="wamodan"] body.print-active {
   --p-font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
@@ -247,4 +252,24 @@ html[data-theme="twocol"] body.print-active {
   --p-font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
   --p-font-body: 'Noto Serif JP', serif;
   --p-accent: #3f5142;
+}
+
+/* ------------------------------------------------------------------
+   ダークモード（本文の画面表示だけを暗くするトグル。「デザイン」の隣の太陽アイコン、app.js
+   toggleDarkMode参照）。2026-09、それまで8つ目の独立したテーマだった「ダークUI」を廃止し、
+   どのデザイン（色・書体の組み合わせ）にも重ねられるトグルへ作り替えた。色（--paper/--ink/
+   --muted/--accent/--rule/--surface）だけを上書きし、書体（--font-*）・角丸（--radius）は
+   選んだデザインのまま変えない（暗さと書体・形は別の軸という考え方）。値自体は旧「ダークUI」と
+   同じ（GitHub/VSCode等の定番ダークUIに近い柔らかいチャコール）。
+   このブロックを最後（どのテーマのセレクタより後）に置くことで、html[data-theme="..."]側の
+   色指定より必ず後勝ちになる（詳細度は互いにhtml+属性/クラス1つ分で同じなので、CSSの出現順で
+   決まる。新しいテーマを足す時は、この位置より前に置くこと）。印刷（PDF化）には一切効かせない
+   （--p-*を書き換えない。印刷は常に白地・黒文字という上の方針のまま）。 */
+html.dark-mode {
+  --paper: #22262c;
+  --ink: #c9cdd6;
+  --muted: #8b93a3;
+  --accent: #e0a63f;
+  --rule: #383e48;
+  --surface: #2b3038;
 }

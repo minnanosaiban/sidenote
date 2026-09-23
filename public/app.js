@@ -58,6 +58,7 @@ const backToTopBtn = document.getElementById("backToTopBtn");
 // 「デザイン」はドロップダウンではなく、ヒーロー内に常時表示するグリッド（2026-09、当初の
 // アプリイメージに合わせて変更。ボタン自体はテーマを直接適用し、開閉は不要）。
 const themeGrid = document.getElementById("themeGrid");
+const darkModeToggleBtn = document.getElementById("darkModeToggleBtn");
 // ---- 本文の書式ツールバー（配置／インデント／ぶら下げ／太字下線／傍点／スタイル）と
 // 「項番設定」パネル、PDFモード用の要素参照（sidenote-pdf-docから移植） ----
 const formatToolbarEl = document.getElementById("formatToolbar");
@@ -1976,14 +1977,17 @@ backToTopBtn.onclick = () => {
 updateBackToTopBtn();
 
 // ---- デザイン（テーマ）切替 ----
+// 2026-09、「ダークUI」を独立したテーマから外し、どのテーマにも重ねられる「ダークモード」トグル
+// （デザイン見出し右の太陽アイコン、下のtoggleDarkMode参照）へ作り替えた。並びは
+// 「公文書風→雑誌風→和モダン→和風２段」「フラット→フラット２段→サイト→カスタマイズ」（指定を受けて変更）。
 const THEMES = [
-  { id: "editorial", label: "エディトリアル", desc: "雑誌風・明朝・ゆったり" },
   { id: "minimal", label: "文書（ミニマル）", desc: "公文書仕様に近い白黒" },
-  { id: "flat", label: "フラット", desc: "カード区切りのSaaS系" },
-  { id: "dark", label: "ダークUI", desc: "分析ツール風・集中読解" },
+  { id: "editorial", label: "エディトリアル", desc: "雑誌風・明朝・ゆったり" },
   { id: "wamodan", label: "和モダン", desc: "エディトリアルより余白広め" },
+  { id: "twocol", label: "和風２段", desc: "和モダン＋本文14pt（2ページ/枚の印刷で9〜10pt）" },
+  { id: "flat", label: "フラット", desc: "カード区切りのSaaS系" },
+  { id: "flat2col", label: "フラット２段", desc: "フラット＋本文14pt（2ページ/枚の印刷で9〜10pt）" },
   { id: "site", label: "サイト", desc: "紺×朱、公開サイトの配色" },
-  { id: "twocol", label: "2段組", desc: "和モダン＋本文14pt（2ページ/枚の印刷で9〜10pt）" },
 ];
 const DEFAULT_THEME = "minimal";
 const THEME_KEY = "sidenote-theme-v1";
@@ -1999,6 +2003,21 @@ function applyTheme(themeId) {
   try { localStorage.setItem(THEME_KEY, valid); } catch (err) { /* noop */ }
   updateFooterInfo();
 }
+
+// ダークモード：本文（#doc・サイドノート・印刷対象外）の色だけを暗くするトグル。書体・角丸は
+// 選んだデザイン（THEMES）のまま変えない（themes.cssのhtml.dark-mode参照）。デザインとは独立の
+// on/offなので、THEMESには含めず別のキーでlocalStorageに保存する。
+const DARK_MODE_KEY = "sidenote-dark-mode-v1";
+let darkMode = false;
+
+function applyDarkMode(on) {
+  darkMode = !!on;
+  document.documentElement.classList.toggle("dark-mode", darkMode);
+  darkModeToggleBtn.classList.toggle("active", darkMode);
+  darkModeToggleBtn.setAttribute("aria-pressed", String(darkMode));
+  try { localStorage.setItem(DARK_MODE_KEY, darkMode ? "1" : "0"); } catch (err) { /* noop */ }
+}
+darkModeToggleBtn.onclick = () => { applyDarkMode(!darkMode); autoSaveDebounced(); };
 
 // ---- ページ最下部「文字サイズ・1行文字数の目安」の注記 ----
 // フォント名だけデザイン（テーマ）ごとに違う（サイズ・段組み幅はテーマ共通の固定値。例外は「2段組」＝NO_SIDEBAR_PRINT_LAYOUT）ので、
@@ -2036,13 +2055,16 @@ function probeHeadingMarginTopEm(level) {
 }
 
 // デザインごとに違う、PDF（サイドバーなし）の組み。ここに無いデザインは既定（本文12pt・1行40字）。
-// 「2段組」は、PDFを2ページ/枚に割り付けて読む前提で、本文14pt・1行34字（A4縦・1段のまま。style.cssの
-// 「デザイン『2段組』」参照）。割り付けの縮小率はLetter横で約0.67倍・A4横で約0.71倍なので、本文は9.3〜9.9ptになる。
+// 「和風２段」「フラット２段」は、PDFを2ページ/枚に割り付けて読む前提で、本文14pt・1行34字
+// （A4縦・1段のまま。style.cssの「デザイン『2段組』」参照）。割り付けの縮小率はLetter横で約0.67倍・
+// A4横で約0.71倍なので、本文は9.3〜9.9ptになる。数値自体は色・書体に依らないため両テーマで共有する。
+const TWOCOL_PRINT_LAYOUT = {
+  bodyPt: 14, headPt: [19, 17, 15], chars: 34, layout: "A4縦・1段",
+  note: "PDFを2ページ/枚に割り付けた時に本文が9〜10pt（Letter横で約9.3pt、A4横で約9.9pt）になる大きさです。h1〜h3は、Markdownの見出し（#〜###）の大きさです（ツールバーの見出しは項番設定どおり）。サイドノートがある文書は従来のサイドバー付きの版面になります。",
+};
 const NO_SIDEBAR_PRINT_LAYOUT = {
-  twocol: {
-    bodyPt: 14, headPt: [19, 17, 15], chars: 34, layout: "A4縦・1段",
-    note: "「2段組」は、PDFを2ページ/枚に割り付けた時に本文が9〜10pt（Letter横で約9.3pt、A4横で約9.9pt）になる大きさです。h1〜h3は、Markdownの見出し（#〜###）の大きさです（ツールバーの見出しは項番設定どおり）。サイドノートがある文書は従来のサイドバー付きの版面になります。",
-  },
+  twocol: TWOCOL_PRINT_LAYOUT,
+  flat2col: TWOCOL_PRINT_LAYOUT,
 };
 
 function updateFooterInfo() {
@@ -2094,8 +2116,17 @@ themeGrid.querySelectorAll("[data-theme-id]").forEach((btn) => {
 });
 (function loadThemeDefault() {
   let saved = DEFAULT_THEME;
-  try { saved = localStorage.getItem(THEME_KEY) || DEFAULT_THEME; } catch (err) { /* noop */ }
+  let savedDark = false;
+  try {
+    saved = localStorage.getItem(THEME_KEY) || DEFAULT_THEME;
+    savedDark = localStorage.getItem(DARK_MODE_KEY) === "1";
+  } catch (err) { /* noop */ }
+  // 旧「ダークUI」（独立テーマ）を選んでいたユーザーへの移行措置：テーマ名は無効化されて
+  // 既定（文書）へ自動で戻るが（applyThemeのフォールバック）、暗さの意図は引き継ぎ、
+  // ダークモードをオンにした状態で開始する。
+  if (saved === "dark") savedDark = true;
   applyTheme(saved);
+  applyDarkMode(savedDark);
 })();
 
 // 「設定」「デザイン」は同じ開閉パターン（同じボタンをもう一度押す、または他方を開くと閉じる）。
