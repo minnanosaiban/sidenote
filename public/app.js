@@ -24,6 +24,13 @@ const pdfColorBtn = document.getElementById("pdfColorBtn");
 const pdfBwBtn = document.getElementById("pdfBwBtn");
 const pdfColorClose = document.getElementById("pdfColorClose");
 const saveDocxBtn = document.getElementById("saveDocxBtn");
+const saveHotlineBtn = document.getElementById("saveHotlineBtn");
+const hotlineExportPanel = document.getElementById("hotlineExportPanel");
+const hotlineExportClose = document.getElementById("hotlineExportClose");
+const hotlineExportFilenameInput = document.getElementById("hotlineExportFilenameInput");
+const hotlineExportDirLabelEl = document.getElementById("hotlineExportDirLabel");
+const hotlineExportPickDirBtn = document.getElementById("hotlineExportPickDirBtn");
+const hotlineExportRunBtn = document.getElementById("hotlineExportRunBtn");
 const printDocEl = document.getElementById("printDoc");
 const loadInput = document.getElementById("loadInput");
 const saveStatusEl = document.getElementById("saveStatus");
@@ -720,6 +727,222 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     if (openedMdFilename) saveMdBtn.click(); else saveBtn.click();
   }
+});
+
+// ---- hotline書面用として書き出す（本文DOM → hotlineサイトの生HTMLへの変換） ----
+// docs/trial*/md（・docs/trial*/.parts）に置いてそのままウェブに反映できる形で書き出す。
+// hotlineサイトは2026-09-21まで、独自マーカー（:N X:）をMkDocsフックdoc_indent.py（削除済み）が
+// 生HTMLへ焼き込んでいた。今の本番ファイルはその焼き込み結果そのものなので、フックの規則
+// （_class_for）をそのままここへ移植する。今のデータモデル（data-indent-level・data-hanging）は
+// 元々このフックのn・kindと1対1（hanging 0/1/2/3 → i/h/h2/h3）に対応しているため、段落側に
+// 新しいUIは要らない。
+//   n=indentLevel（0〜9）／hanging=0〜3
+//   hanging=0: n>0→"pad{n} idt" / n=0→"doc"
+//   hanging=1/2/3: n>0→"pad{n} hg-idt{,2,3}" / n=0→"hg-idt{,2,3}"単独
+// 既知のギャップ：n=0でも字下げだけ欲しい稀なケース（本番で"doc idt"。旧フックではnを無視する
+// 独立した種別「d」だったため、今のインデント段数だけでは判別できない）はここでは作れない。
+// 実例は本文全体で5箇所のみなので、必要な時だけ書き出し後に手でクラスを直す
+// （center・doc-gap-top等、既に手作業運用の稀な装飾と同列に扱う）。
+function hotlineParaClass(indentLevel, hanging, align) {
+  const n = Number(indentLevel) || 0;
+  const pad = n > 0 ? `pad${n}` : "";
+  const hg = { 1: "hg-idt", 2: "hg-idt2", 3: "hg-idt3" }[hanging];
+  let base;
+  if (!hg) base = pad ? `${pad} idt` : "doc";
+  else base = pad ? `${pad} ${hg}` : hg;
+  return align === "center" ? `${base} center` : base;
+}
+
+// インライン要素→生HTML。inlineNodeToMarkdown（上）と対になる関数だが、Markdown記法ではなく
+// 実際のタグ（<b>・<u>・<a href>）で出す（hotline側の本文はMarkdownではなく生HTMLの段落のため）。
+// 注釈（note-anchor）は引用元のプレーンテキストだけを残す（本文中に印は付けない。本番ファイルと
+// 同じ）。ノート本体は呼び出し側（paraNoteAsidesHtml）が段落の直後に別ブロックのasideとして続ける。
+function hotlineInlineHtml(node) {
+  if (node.nodeType === Node.TEXT_NODE) return escapeHtml(node.textContent).replace(/​/g, "");
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+  if (node.tagName === "BR") return "<br>";
+  if (node.classList && node.classList.contains("li-marker")) return "";
+  if (node.classList && node.classList.contains("note-anchor")) {
+    return escapeHtml(node.querySelector("span")?.textContent || "");
+  }
+  const children = () => Array.from(node.childNodes).map(hotlineInlineHtml).join("");
+  if (node.classList && node.classList.contains("kenten")) {
+    return `<span style="-webkit-text-emphasis-style: filled dot; text-emphasis-style: filled dot;">${children()}</span>`;
+  }
+  if (node.tagName === "STRONG" || node.tagName === "B") return `<b>${children()}</b>`;
+  if (node.tagName === "U") return `<u>${children()}</u>`;
+  if (node.tagName === "A") return `<a href="${escapeHtml(node.getAttribute("href") || "")}">${children()}</a>`;
+  return children();
+}
+
+// 段落に付いたノート1件を本番の<aside class="sn-note">形へ。返信スレッド（同じ範囲への複数ノート）は
+// <br>区切りで1つのasideにまとめ、色が赤（重要）のノートだけ、そのノート自身を<span class="strong-rd">
+// で包む（本番ファイルの実例と同じ。ノート番号・sn-note-importantクラスは今の本番フォーマットには無い
+// ため付けない）。相互参照リンク・バッジ等を含む「認否ノート」相当の装飾はここでは作らない
+// （import_argument.py・手作業の領分。README参照）。
+function hotlineNoteAsideHtml(anchorEl) {
+  const notes = notesByAnchor.get(anchorEl.dataset.anchorId) || [];
+  if (!notes.length) return "";
+  const body = notes.map((note) => {
+    const html = formatNoteText(note.text);
+    return note.color === "red" ? `<span class="strong-rd">${html}</span>` : html;
+  }).join("<br>");
+  return `\n\n<aside class="sn-note">${body}</aside>`;
+}
+function paraNoteAsidesHtml(paraEl) {
+  return Array.from(paraEl.querySelectorAll(".note-anchor")).map(hotlineNoteAsideHtml).join("");
+}
+
+// 1ブロック（.para系要素）→ hotline用HTML。画像・表・区切り線・改ページ・箇条書きはこのジャンル
+// （裁判文書）では使わない想定のため対象外（混入時は書き出し件数をhotlineExportRunBtn側で案内する）。
+const HOTLINE_SKIP_CLASSES = ["para-image", "para-table", "para-hr", "para-pagebreak", "para-li"];
+function blockParaToHotline(paraEl) {
+  if (HOTLINE_SKIP_CLASSES.some((c) => paraEl.classList.contains(c))) return null;
+  const text = Array.from(paraEl.childNodes).map(hotlineInlineHtml).join("").trim();
+  if (!text) return null;
+  const cls = hotlineParaClass(Number(paraEl.dataset.indentLevel || 0), Number(paraEl.dataset.hanging || 0), paraEl.dataset.align);
+  return `<p class="${cls}">\n${text}\n</p>${paraNoteAsidesHtml(paraEl)}`;
+}
+
+function buildHotlineExport() {
+  const paras = Array.from(doc.children).filter((el) => el.classList && el.classList.contains("para"));
+  const skipped = paras.filter((p) => HOTLINE_SKIP_CLASSES.some((c) => p.classList.contains(c))).length;
+  const blocks = paras.map(blockParaToHotline).filter(Boolean);
+  if (!blocks.length) return null;
+  return { html: blocks.join("\n\n") + "\n", skipped };
+}
+
+// ---- 保存先フォルダへ直接書き込み（File System Access API） ----
+// 「ダウンロード→探す→貼り付け」を無くすため、選んだフォルダのハンドルをIndexedDBに記憶し、
+// 次回以降はファイル名を聞くだけで直接書き込む（sidenote-pdf-webの同名機構を移植。非対応ブラウザ
+// ＝Firefox等ではwindow.showDirectoryPickerが無いため、常に.md.txtのダウンロードにフォールバックする）。
+const HOTLINE_IDB_NAME = "sidenote-hotline-export";
+const HOTLINE_IDB_STORE = "handles";
+const HOTLINE_EXPORT_DIR_KEY = "exportDir";
+
+function hotlineIdbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(HOTLINE_IDB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(HOTLINE_IDB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function hotlineIdbGet(key) {
+  const db = await hotlineIdbOpen();
+  return new Promise((resolve, reject) => {
+    const rq = db.transaction(HOTLINE_IDB_STORE, "readonly").objectStore(HOTLINE_IDB_STORE).get(key);
+    rq.onsuccess = () => resolve(rq.result);
+    rq.onerror = () => reject(rq.error);
+  });
+}
+async function hotlineIdbSet(key, value) {
+  const db = await hotlineIdbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(HOTLINE_IDB_STORE, "readwrite");
+    tx.objectStore(HOTLINE_IDB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+let hotlineExportDirHandle = null;
+
+// 記憶した保存先（無ければ選ばせる）を返す。非対応ブラウザではnull。
+async function pickHotlineExportDir(forceRepick) {
+  if (!window.showDirectoryPicker) return null;
+  let dir = null;
+  if (!forceRepick) {
+    try { dir = await hotlineIdbGet(HOTLINE_EXPORT_DIR_KEY); } catch (err) { /* 初回等、無ければ選ばせる */ }
+  }
+  if (dir) {
+    // 保存済みハンドルの権限はセッションごとに失効するため、毎回確認→必要なら再要求する
+    // （requestPermissionはユーザー操作起点でしか呼べないが、ここはボタンクリック中なのでOK）。
+    let perm = await dir.queryPermission({ mode: "readwrite" });
+    if (perm !== "granted") perm = await dir.requestPermission({ mode: "readwrite" });
+    if (perm !== "granted") dir = null;
+  }
+  if (!dir) {
+    dir = await window.showDirectoryPicker({ mode: "readwrite" });
+    try { await hotlineIdbSet(HOTLINE_EXPORT_DIR_KEY, dir); } catch (err) { /* 保存失敗しても今回分の書き込みは続行 */ }
+  }
+  return dir;
+}
+
+async function writeHotlineFileTo(dir, filename, text) {
+  const fileHandle = await dir.getFileHandle(filename, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(text);
+  await writable.close();
+}
+
+function updateHotlineExportDirLabel() {
+  hotlineExportDirLabelEl.textContent = hotlineExportDirHandle
+    ? `保存先：${hotlineExportDirHandle.name}`
+    : "保存先：未選択（書き出す時に選べます）";
+}
+
+async function pickHotlineExportDirAndUpdate(forceRepick) {
+  try {
+    const dir = await pickHotlineExportDir(forceRepick);
+    if (dir) { hotlineExportDirHandle = dir; updateHotlineExportDirLabel(); }
+  } catch (err) {
+    if (err && err.name !== "AbortError") console.error(err);
+  }
+}
+
+function hotlineExportFilenameSuggestion() {
+  return `${sanitizeFilename(projectTitle()) || "doc"}.md.txt`;
+}
+
+// ---- 「hotline用」ボタン・書き出しパネル ----
+saveHotlineBtn.onclick = () => {
+  toggleDropdownPanel(hotlineExportPanel, saveHotlineBtn);
+  if (hotlineExportPanel.hidden) return;
+  if (!hotlineExportFilenameInput.value) hotlineExportFilenameInput.value = hotlineExportFilenameSuggestion();
+  const dirSupported = !!window.showDirectoryPicker;
+  hotlineExportPickDirBtn.hidden = !dirSupported;
+  hotlineExportDirLabelEl.hidden = !dirSupported;
+  updateHotlineExportDirLabel();
+  hotlineExportFilenameInput.focus();
+};
+hotlineExportClose.onclick = () => { hotlineExportPanel.hidden = true; saveHotlineBtn.focus(); };
+hotlineExportPickDirBtn.onclick = () => pickHotlineExportDirAndUpdate(true);
+
+hotlineExportRunBtn.onclick = async () => {
+  const built = buildHotlineExport();
+  if (!built) { setStatus("書き出す本文がありません。"); return; }
+  let filename = (hotlineExportFilenameInput.value || "").trim() || hotlineExportFilenameSuggestion();
+  if (!/\.md\.txt$/i.test(filename)) filename = `${filename.replace(/\.[^.]*$/, "")}.md.txt`;
+  filename = sanitizeFilename(filename);
+  const warn = built.skipped ? `（画像・表など${built.skipped}件は対象外のため省きました）` : "";
+
+  if (window.showDirectoryPicker) {
+    try {
+      if (!hotlineExportDirHandle) await pickHotlineExportDirAndUpdate(false);
+      if (!hotlineExportDirHandle) return;   // フォルダ選択をキャンセルした
+      await writeHotlineFileTo(hotlineExportDirHandle, filename, built.html);
+      hotlineExportPanel.hidden = true;
+      notifySave(`書き出しました：${hotlineExportDirHandle.name}/${filename}${warn}`);
+      return;
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+      console.error(err);
+      setStatus("フォルダへの書き込みに失敗しました。ダウンロードに切り替えます。");
+    }
+  }
+  const blob = new Blob([built.html], { type: "text/plain;charset=utf-8" });
+  downloadBlob(blob, filename);
+  hotlineExportPanel.hidden = true;
+  notifySave(`書き出しました（ダウンロード）：${filename}${warn}`);
+};
+
+document.addEventListener("mousedown", (e) => {
+  if (hotlineExportPanel.hidden || hotlineExportPanel.contains(e.target) || saveHotlineBtn.contains(e.target)) return;
+  hotlineExportPanel.hidden = true;
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !hotlineExportPanel.hidden) { hotlineExportPanel.hidden = true; saveHotlineBtn.focus(); }
 });
 
 // ---- .docxとして書き出す（本文DOM → Wordファイルへの変換） ----
@@ -3509,6 +3732,8 @@ function setMode(mode) {
   applyEditMenuVisibility();
   saveMdBtn.hidden = isPdf;
   saveDocxBtn.hidden = isPdf;
+  saveHotlineBtn.hidden = isPdf;
+  if (isPdf) hotlineExportPanel.hidden = true;
   // モード切り替え時に前の状態を持ち越さない（本文モード側のホバーアイコン）。
   paraHoverEl.hidden = true;
   hoveredPara = null;

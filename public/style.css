@@ -122,8 +122,9 @@ body {
 
 /* 上段（ファイル操作）のボタンは、文字サイズ・高さを下段の編集メニュー（.fmt-btn）と揃える
    （2026-09、上下でサイズ感が違うという指摘を受けて統一）。ラベルの長さに関わらず幅も揃え、
-   最長ラベル「続きから再開」に合わせる。文字を13pxへ縮めた分、幅も詰めて7個（新しい作業/
-   続きから再開/開く/.json/.md/.pdf/.docx）＋右端の固定チェックボックスが900px内に収まるようにする。 */
+   最長ラベル「続きから再開」に合わせる。文字を13pxへ縮めた分、幅も詰めて8個（新しい作業/
+   続きから再開/開く/.json/.md/.pdf/.docx/hotline用）＋右端の固定チェックボックスが
+   --toolbar-max（970px）内に収まるようにする。 */
 .toolbar .btn-outline, .toolbar .btn-primary, .toolbar .filebtn2 {
   width: 84px; font-size: 13px; height: 30px; padding: 0 8px;
 }
@@ -135,7 +136,7 @@ body {
    固定され続けないため、編集メニューの.toolbar-stickyもbody直下＝ページ全体ぶんの高さがある
    親のままにしておく。 */
 .toolbar-sticky {
-  max-width: var(--page-max); margin: 0 auto 16px; padding-top: 48px;
+  max-width: var(--toolbar-max); margin: 0 auto 16px; padding-top: 48px;
 }
 /* 下段側の.toolbar-stickyは上段の直後に続けたいので、上段用のpadding-top(48px)を打ち消しつつ、
    2行がくっついて見えないよう8pxだけ隙間を残す（本来48pxぶん要る余白はヒーロー直後の1回だけでよい）。 */
@@ -321,8 +322,13 @@ body {
   --h3-before: .9em;
   --h456-before: .8em;
   --h2-after: var(--gap-after);   /* H2の後ろの余白。既定は段落と同じ（サイトテーマだけ別の値にする） */
-  --page-max: 900px;      /* ツールバー・ファイル名・本文・注記の共通の最大幅（Markdownモードでは広げる） */
+  --page-max: 900px;      /* ファイル名・本文・注記の共通の最大幅（Markdownモードでは広げる） */
   --line-max: 37em;       /* 本文の1行の最大幅（全角1文字≒1emで文字数に換算） */
+  --toolbar-max: 970px;   /* ツールバー（上段のファイル操作ボタン列・下段の編集メニュー）だけの最大幅。
+                             page-maxとは切り離し、Markdownモードで本文が37字→40字に広がる／戻る時も
+                             ボタン列の折り返し方が変わらないようにする（2026-09、hotline用ボタン追加で
+                             8個＋右端のチェックボックス2つの合計が実測955pxとなり、900pxはもちろん
+                             950px（旧page-maxのMarkdownモード時）でも折り返すようになったため新設）。 */
   --table-extra: .8em;    /* 表の上下に、段落間の余白へ上乗せする余白（画面・PDF共通。emは表自身の文字サイズ基準。
                              2026-09、PDFの表は文字が9ptと小さく.4em＝約3.6ptでは控えめだったため.8emへ） */
 }
@@ -331,7 +337,8 @@ body {
    あるため0.1em分だけ余裕を持たせる（41字目は入らない）。本文の列が40emぶん広がるよう、
    ページ全体の最大幅も950pxまで広げる（900px→左カラム612px→本文554pxでは40字が入らない。
    サイドノート欄260px・間隔28px・#docの罫線と余白58pxを差し引いても本文が604px残る幅）。
-   幅を変えるのはこのモードの時だけで、通常のモードは今まで通り（900px・37em）。 */
+   幅を変えるのはこのモードの時だけで、通常のモードは今まで通り（900px・37em）。ツールバーの幅
+   （--toolbar-max）はここでは変えない＝常に固定（上のtoolbar-maxのコメント参照）。 */
 body.markdown-mode-active {
   --page-max: 950px;
   --line-max: 40.1em;
@@ -896,6 +903,16 @@ body.markdown-mode-active .para-table-note-btn {
 .pdf-color-btn.is-last { background: var(--tx-text); color: #fff; border-color: var(--tx-text); }
 .pdf-color-btn.is-last:hover { background: #262626; }
 .pdf-color-btn:focus-visible { outline: 2px solid var(--tx-text); outline-offset: 2px; }
+
+/* ── 「hotline用」ボタンで開く、書き出し先フォルダ・ファイル名の確認パネル（app.js参照） ── */
+.hotline-export-panel { width: 320px; }
+.hotline-export-field { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin-bottom: 10px; font-size: 12.5px; color: var(--tx-text); }
+.hotline-export-field input[type="text"] {
+  padding: 5px 8px; border-radius: 6px; border: 1px solid var(--tx-border); font-size: 12.5px; font-family: inherit;
+}
+.hotline-export-dir-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+#hotlineExportDirLabel { font-size: 11.5px; color: var(--tx-muted-2); }
+.hotline-export-dir-btn { height: 28px; padding: 0 10px; font-size: 12px; flex: none; }
 
 /* ── PDFモード（「開く」で.pdfを選んだ時） ──
    #doc（contenteditable本文）の代わりに#pdfViewerを表示する。ページ（.pdf-page）を縦に積み、
