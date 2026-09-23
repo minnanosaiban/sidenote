@@ -185,7 +185,7 @@ try {
        設定ボタンを廃止して空いた幅にボタン列と同じ行で収まる（margin-left:autoで右寄せ）。 -->
   <div class="menu-pin-toggles">
     <label class="menu-pin-toggle"><input type="checkbox" id="menu2VisibleToggle">編集メニューを表示</label>
-    <label class="menu-pin-toggle"><input type="checkbox" id="menu2StickyToggle">編集メニューを固定</label>
+    <label class="menu-pin-toggle"><input type="checkbox" id="menu2StickyToggle">メニュー固定</label>
   </div>
 </div>
 </div>
@@ -210,7 +210,7 @@ try {
     <span class="fmt-group-label">インデント</span>
     <span class="fmt-group">
       <button type="button" class="fmt-btn fmt-btn-2ch" id="indentDecBtn" title="インデントを減らす（箇条書き・番号付きの項目では入れ子の解除になります）">−</button>
-      <button type="button" class="fmt-btn fmt-btn-2ch" id="indentIncBtn" title="インデントを増やす（箇条書き・番号付きの項目では入れ子にします。Markdownモードでは、リスト項目以外では使えません）">＋</button>
+      <button type="button" class="fmt-btn fmt-btn-2ch" id="indentIncBtn" title="インデントを増やす（箇条書き・番号付きの項目では入れ子にします。MDモードでは、リスト項目以外では使えません）">＋</button>
     </span>
   </span>
   <span class="sep"></span>
@@ -278,7 +278,7 @@ try {
        （実装はapp.js applyMarkdownMode／updateFormatToolbarState参照）。 -->
   <span class="sep"></span>
   <label class="fmt-md-toggle" id="markdownModeLabel" data-tip="オンにすると、Markdown書き出し（.md）に反映されない書式（配置・ぶら下げ・文字サイズ・傍点）とサイドノートをグレーアウトして使えなくします（インデントは箇条書き・番号付きの入れ子には使えるため、リスト項目にいる時だけ有効なままです）">
-    <input type="checkbox" id="markdownModeToggle">Markdownモード
+    <input type="checkbox" id="markdownModeToggle">MDモード
   </label>
 </div>
 </div>
