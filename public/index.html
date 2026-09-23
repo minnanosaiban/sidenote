@@ -171,21 +171,15 @@ try {
     <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5z"/></svg>
     .docx
   </button>
-  <!-- hotline書面用の書き出し。docs/trial*/md（またはdocs/trial*/.parts）にそのまま置ける生HTML
-       （<p class="padN idt/hg-idt">・<aside class="sn-note">）で書き出す。クラス名の規則は
-       hotlineサイトの旧MkDocsフック（doc_indent.py、削除済み）の焼き込み規則を移植したもの
-       （app.js hotlineParaClass参照）。対応ブラウザ（Chrome/Edge）では選んだフォルダへ直接書き込める。 -->
-  <button id="saveHotlineBtn" type="button" class="btn-primary" data-tip="hotlineサイトの書面ページ（docs/trial*/md 等）にそのまま置ける形式で書き出します（対応ブラウザではフォルダへ直接保存できます。PDFモードでは使えません）">
-    <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5z"/></svg>
-    hotline用
-  </button>
   <!-- 上段（このファイル操作の行）は固定表示をやめ、常に本文と一緒にスクロールする
        （固定機能はページ下の「↑」ボタン＝メニューへ戻るボタンに置き換えた）。
        下段＝書式ツールバー（編集メニュー）は表示/非表示・固定/解除をここで選べる（menu-sticky参照）。
-       設定ボタンを廃止して空いた幅にボタン列と同じ行で収まる（margin-left:autoで右寄せ）。 -->
+       設定ボタンを廃止して空いた幅にボタン列と同じ行で収まる（margin-left:autoで右寄せ）。
+       「メニュー固定」は2026-09、下段（#formatToolbar）末尾のMDモードの隣へ移設（上段はファイル操作の
+       ボタンだけに揃え、編集メニューに関する2つのチェックボックス＝表示/固定は分けずどちらも
+       下段側にまとめる方が分かりやすいという指摘を受けて）。 -->
   <div class="menu-pin-toggles">
     <label class="menu-pin-toggle"><input type="checkbox" id="menu2VisibleToggle">編集メニューを表示</label>
-    <label class="menu-pin-toggle"><input type="checkbox" id="menu2StickyToggle">メニュー固定</label>
   </div>
 </div>
 </div>
@@ -197,6 +191,59 @@ try {
      フォーカス・選択範囲を失わないようにする（失うとどの段落・範囲に適用すべきか分からなくなるため）。 -->
 <div class="toolbar-sticky toolbar-sticky--menu2" id="toolbarMenu2Wrap">
 <div class="toolbar toolbar-format" id="formatToolbar">
+  <!-- 2026-09、内容を決める操作（スタイル・太字/下線/傍点・箇条書き等の挿入・hotline用書き出し）を
+       前半へ、見た目を整える操作（配置・インデント・ぶら下げ・文字サイズ）を後半へまとめ直した
+       （折り返した時に「配置」から始まる行と「hotline用」で終わる行に分かれ、意味のまとまりが
+       崩れないようにするため）。 -->
+  <span class="fmt-unit">
+    <span class="fmt-group-label">スタイル</span>
+    <span class="fmt-group">
+      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="" title="本文（見出しを解除）">本文</button>
+      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="h1" title="見出し1">H1</button>
+      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="h2" title="見出し2">H2</button>
+      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="h3" title="見出し3">H3</button>
+    </span>
+  </span>
+  <span class="sep"></span>
+  <span class="fmt-group">
+    <button type="button" class="fmt-btn fmt-btn-bold" id="boldBtn" title="太字（Ctrl+B）">B</button>
+    <button type="button" class="fmt-btn fmt-btn-underline" id="underlineBtn" title="下線（Ctrl+U）">U</button>
+    <button type="button" class="fmt-btn fmt-btn-kenten" id="kentenBtn" title="傍点（強調したい範囲を選択してから押してください）">傍点</button>
+  </span>
+  <span class="sep"></span>
+  <span class="fmt-group">
+    <!-- 箇条書き（・）の追加・解除（トグル）。マーカー（• ）は本文編集不可の固定スパンとして先頭に
+         差し込む（Markdown取り込みで作る.para-liと同じ構造・見た目。app.js toggleBulletList参照）。
+         番号付き（1.）は隣のorderedListBtn。どちらも.para-liクラスは共通で、.li-markerの中身
+         （「• 」か「1. 」等の数字始まりか）で種類を見分ける（liOrderedMarker参照）。 -->
+    <button type="button" class="fmt-btn" id="bulletListBtn" title="箇条書き（・）にする（もう一度押すと解除。番号付きから押すと・に切り替え）">箇条書き</button>
+    <button type="button" class="fmt-btn" id="orderedListBtn" title="番号付き（1. 2. 3. …）にする（もう一度押すと解除。箇条書きから押すと番号付きに切り替え。Enterで続きの段落を作ると自動採番）">番号付き</button>
+    <!-- 表の挿入。現在の段落の直後に既定サイズ（見出し1行＋本文2行×3列）の表を挿入する。
+         セルはそのまま書き換えられるが、行・列の追加/削除UIは無い（app.js insertTableBlock参照）。 -->
+    <button type="button" class="fmt-btn" id="insertTableBtn" title="表を挿入（見出し1行＋本文2行×3列。セルはそのまま書き換えできます）">表を挿入</button>
+    <!-- 画像の挿入。ファイル選択で選んだ画像を、現在の段落の直後に画像ブロックとして挿入する（複数選択可。
+         段落ホバーの「＋画像」・Ctrl+V・ドラッグ＆ドロップと同じ画像ブロック。app.js insertImageBtn参照）。
+         画像はdata URLとして本文に内包されるため、Markdownで書き出すと ![](data:image/png;base64,…) になる。 -->
+    <button type="button" class="fmt-btn" id="insertImageBtn" title="画像を挿入（カーソルのある段落の直後に入ります。複数選択できます。Markdownで書き出すと ![](data:image/…;base64,…) の形になります）">画像を挿入</button>
+    <input type="file" id="insertImageFile" accept="image/*" multiple hidden>
+    <!-- 区切り線の挿入。現在の段落の直後に「---」相当の水平線を1本挿入する（app.js insertHrBlock参照）。
+         削除は画像・表と同じく、挿入された区切り線にマウスを乗せた時に出る×ボタン（bindHrParaEvents）で行う。 -->
+    <button type="button" class="fmt-btn" id="insertHrBtn" title="区切り線を挿入（削除は挿入後、区切り線の×ボタンで行えます）">区切り線</button>
+    <!-- 改ページの挿入。現在の段落の直後に改ページを1つ挿入する（app.js insertPageBreakBlock参照）。Markdownでは
+         HTMLコメント形式のpagebreak 1行に対応する（README・ヘルプ参照）。削除は区切り線と同じ×ボタン。 -->
+    <button type="button" class="fmt-btn" id="insertPageBreakBtn" title="改ページを挿入（PDF・Word書き出しでその位置から次のページになります。削除は挿入後、改ページの×ボタンで行えます）">改ページ</button>
+  </span>
+  <span class="sep"></span>
+  <!-- hotline書面用の書き出し。docs/trial*/md（またはdocs/trial*/.parts）にそのまま置ける生HTML
+       （<p class="padN idt/hg-idt">・<aside class="sn-note">）で書き出す。クラス名の規則は
+       hotlineサイトの旧MkDocsフック（doc_indent.py、削除済み）の焼き込み規則を移植したもの
+       （app.js hotlineParaClass参照）。対応ブラウザ（Chrome/Edge）では選んだフォルダへ直接書き込める。
+       2026-09、上段（ファイル操作の行）から、内容を決める操作をまとめたこちらの行末へ移設。 -->
+  <button id="saveHotlineBtn" type="button" class="btn-primary" data-tip="hotlineサイトの書面ページ（docs/trial*/md 等）にそのまま置ける形式で書き出します（対応ブラウザではフォルダへ直接保存できます。PDFモードでは使えません）">
+    <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5z"/></svg>
+    hotline用
+  </button>
+  <span class="sep"></span>
   <span class="fmt-unit fmt-unit-mdoff">
     <span class="fmt-group-label">配置</span>
     <span class="fmt-group">
@@ -231,54 +278,21 @@ try {
       <button type="button" class="fmt-btn fmt-btn-2ch" id="fontSizeIncBtn" title="文字サイズを大きく">＋</button>
     </span>
   </span>
-  <span class="sep"></span>
-  <span class="fmt-group">
-    <button type="button" class="fmt-btn fmt-btn-bold" id="boldBtn" title="太字（Ctrl+B）">B</button>
-    <button type="button" class="fmt-btn fmt-btn-underline" id="underlineBtn" title="下線（Ctrl+U）">U</button>
-    <button type="button" class="fmt-btn fmt-btn-kenten" id="kentenBtn" title="傍点（強調したい範囲を選択してから押してください）">傍点</button>
-  </span>
-  <span class="sep"></span>
-  <span class="fmt-unit">
-    <span class="fmt-group-label">スタイル</span>
-    <span class="fmt-group">
-      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="" title="本文（見出しを解除）">本文</button>
-      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="h1" title="見出し1">H1</button>
-      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="h2" title="見出し2">H2</button>
-      <button type="button" class="fmt-btn fmt-btn-2ch" data-style="h3" title="見出し3">H3</button>
-    </span>
-  </span>
-  <span class="sep"></span>
-  <span class="fmt-group">
-    <!-- 箇条書き（・）の追加・解除（トグル）。マーカー（• ）は本文編集不可の固定スパンとして先頭に
-         差し込む（Markdown取り込みで作る.para-liと同じ構造・見た目。app.js toggleBulletList参照）。
-         番号付き（1.）は隣のorderedListBtn。どちらも.para-liクラスは共通で、.li-markerの中身
-         （「• 」か「1. 」等の数字始まりか）で種類を見分ける（liOrderedMarker参照）。 -->
-    <button type="button" class="fmt-btn" id="bulletListBtn" title="箇条書き（・）にする（もう一度押すと解除。番号付きから押すと・に切り替え）">箇条書き</button>
-    <button type="button" class="fmt-btn" id="orderedListBtn" title="番号付き（1. 2. 3. …）にする（もう一度押すと解除。箇条書きから押すと番号付きに切り替え。Enterで続きの段落を作ると自動採番）">番号付き</button>
-    <!-- 表の挿入。現在の段落の直後に既定サイズ（見出し1行＋本文2行×3列）の表を挿入する。
-         セルはそのまま書き換えられるが、行・列の追加/削除UIは無い（app.js insertTableBlock参照）。 -->
-    <button type="button" class="fmt-btn" id="insertTableBtn" title="表を挿入（見出し1行＋本文2行×3列。セルはそのまま書き換えできます）">表を挿入</button>
-    <!-- 画像の挿入。ファイル選択で選んだ画像を、現在の段落の直後に画像ブロックとして挿入する（複数選択可。
-         段落ホバーの「＋画像」・Ctrl+V・ドラッグ＆ドロップと同じ画像ブロック。app.js insertImageBtn参照）。
-         画像はdata URLとして本文に内包されるため、Markdownで書き出すと ![](data:image/png;base64,…) になる。 -->
-    <button type="button" class="fmt-btn" id="insertImageBtn" title="画像を挿入（カーソルのある段落の直後に入ります。複数選択できます。Markdownで書き出すと ![](data:image/…;base64,…) の形になります）">画像を挿入</button>
-    <input type="file" id="insertImageFile" accept="image/*" multiple hidden>
-    <!-- 区切り線の挿入。現在の段落の直後に「---」相当の水平線を1本挿入する（app.js insertHrBlock参照）。
-         削除は画像・表と同じく、挿入された区切り線にマウスを乗せた時に出る×ボタン（bindHrParaEvents）で行う。 -->
-    <button type="button" class="fmt-btn" id="insertHrBtn" title="区切り線を挿入（削除は挿入後、区切り線の×ボタンで行えます）">区切り線</button>
-    <!-- 改ページの挿入。現在の段落の直後に改ページを1つ挿入する（app.js insertPageBreakBlock参照）。Markdownでは
-         HTMLコメント形式のpagebreak 1行に対応する（README・ヘルプ参照）。削除は区切り線と同じ×ボタン。 -->
-    <button type="button" class="fmt-btn" id="insertPageBreakBtn" title="改ページを挿入（PDF・Word書き出しでその位置から次のページになります。削除は挿入後、改ページの×ボタンで行えます）">改ページ</button>
-  </span>
-  <!-- Markdownモード：チェックすると、.md書き出しに反映されない書式（配置・ぶら下げ・文字サイズ・
-       傍点）とサイドノート機能をグレーアウトして使えなくする。インデントは箇条書き・番号付きの
-       入れ子（Markdownの2字下げネスト）には反映されるため、リスト項目にカーソルがある間だけ
-       使える（updateFormatToolbarState参照。ここでは一律には塞がない）。
+  <!-- Markdownモード（MDモード）：チェックすると、.md書き出しに反映されない書式（配置・ぶら下げ・
+       文字サイズ・傍点）とサイドノート機能をグレーアウトして使えなくする。インデントは箇条書き・
+       番号付きの入れ子（Markdownの2字下げネスト）には反映されるため、リスト項目にカーソルがある間
+       だけ使える（updateFormatToolbarState参照。ここでは一律には塞がない）。
        Markdown書き出しを前提に編集する時、後で消える装飾を誤って使わないための目印
-       （実装はapp.js applyMarkdownMode／updateFormatToolbarState参照）。 -->
+       （実装はapp.js applyMarkdownMode／updateFormatToolbarState参照）。
+       「メニュー固定」（旧・上段の.menu-pin-toggles）は2026-09、編集メニューに関するもう1つの
+       チェックボックス「編集メニューを表示」から離れる形になるが、この行の折り返し末尾＝MDモードの
+       隣へ移設（app.jsの参照先（menu2StickyToggle）・挙動は変えていない）。 -->
   <span class="sep"></span>
   <label class="fmt-md-toggle" id="markdownModeLabel" data-tip="オンにすると、Markdown書き出し（.md）に反映されない書式（配置・ぶら下げ・文字サイズ・傍点）とサイドノートをグレーアウトして使えなくします（インデントは箇条書き・番号付きの入れ子には使えるため、リスト項目にいる時だけ有効なままです）">
     <input type="checkbox" id="markdownModeToggle">MDモード
+  </label>
+  <label class="fmt-md-toggle" data-tip="編集メニュー（この書式ツールバー）を画面上部へ固定します">
+    <input type="checkbox" id="menu2StickyToggle">メニュー固定
   </label>
 </div>
 </div>
