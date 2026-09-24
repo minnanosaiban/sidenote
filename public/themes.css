@@ -103,7 +103,7 @@ html[data-theme="flat"] {
 /* ④ フラット２段：フラットと色・フォントは同じで、⑦「和風２段」と同じ理由・同じ倍率で
    本文・見出しだけ拡大したもの（2026-09、ダークUIをテーマ選択から外し、本文だけを暗くする
    トグルへ作り替えたことで空いた枠に新設）。サイズそのものは⑦のコメント・style.cssの
-   「デザイン『2段組』」を参照（本文12pt→14ptの比率がテーマ非依存の計算のため、セレクタへ
+   「デザイン『2段組』」を参照（本文12pt→16ptの比率がテーマ非依存の計算のため、セレクタへ
    data-theme="flat2col"を足すだけで済む。この定義ブロックには色・フォントのみ置く）。 */
 html[data-theme="flat2col"] {
   --paper: #f4f5f7;
@@ -178,10 +178,11 @@ html[data-theme="site"] {
 /* ⑦ 和風２段（内部id・localStorageの保存値は旧称のままtwocol）：和モダンをベースに、PDFを
    「2ページ/枚」（A4縦の2ページを1枚に左右に並べる印刷）にしても読める大きさにしたデザイン
    （2026-09、ノートと差し替え。同「2段組」から改称）。色・書体・余白は和モダンと同じ。変えたのは
-   文字の大きさと1行の字数だけ：サイドノートなしのPDFの本文を12pt→14ptにし、2ページ/枚にした時に
-   9〜10ptになるようにする（Letter横＝約0.67倍で9.3pt、A4横＝約0.71倍で9.9pt）。見出し（H1〜H3）も
-   それに比例して拡大し（本文14ptに対しH1 19pt／H2 17pt／H3 15pt）、1行は170mm÷14ptで全角34字
-   （画面のMarkdownモードも同じ34字）。用紙・段数（A4縦・1段）は変えない。この拡大率はテーマの
+   文字の大きさと1行の字数だけ：サイドノートなしのPDFの本文を12pt→16ptにし、2ページ/枚にした時に
+   11pt前後になるようにする（Letter横＝約0.67倍で10.7pt、A4横＝約0.71倍で11.4pt。2026-09、9〜10ptでは
+   小さいという指摘を受けて14pt→16ptに拡大）。見出し（H1〜H3）も
+   それに比例して拡大し（本文16ptに対しH1 22pt／H2 19pt／H3 17pt）、1行は170mm÷16ptで全角30字
+   （画面のMarkdownモードも同じ30字）。用紙・段数（A4縦・1段）は変えない。この拡大率はテーマの
    色・書体に依らない計算（本文の基準12ptに対する比率）なので、④「フラット２段」も同じ数値を
    セレクタへ足すだけで共有している（下の.para-h1〜・--line-max・style.cssの
    「デザイン『2段組』」参照）。ページ下部の目安表示はapp.jsのNO_SIDEBAR_PRINT_LAYOUT参照。 */
@@ -199,15 +200,15 @@ html[data-theme="twocol"] {
   --h2-before: 6.4em;   /* 余白は和モダンと同じ値（emなので、文字が大きくなったぶん実寸は比例して広がる） */
   --gap-after: 2em;
 }
-/* 画面の見出しの大きさも、PDFと同じ比率（本文14pt：H1 19pt／H2 17pt／H3 15pt）にそろえる。
+/* 画面の見出しの大きさも、PDFと同じ比率（本文16pt：H1 22pt／H2 19pt／H3 17pt）にそろえる。
    flat2col（フラット２段）も同じ比率なのでセレクタをまとめる。 */
-html[data-theme="twocol"] .para-h1, html[data-theme="flat2col"] .para-h1 { font-size: 1.36em; }
-html[data-theme="twocol"] .para-h2, html[data-theme="flat2col"] .para-h2 { font-size: 1.21em; }
-html[data-theme="twocol"] .para-h3, html[data-theme="flat2col"] .para-h3 { font-size: 1.07em; }
+html[data-theme="twocol"] .para-h1, html[data-theme="flat2col"] .para-h1 { font-size: 1.38em; }
+html[data-theme="twocol"] .para-h2, html[data-theme="flat2col"] .para-h2 { font-size: 1.19em; }
+html[data-theme="twocol"] .para-h3, html[data-theme="flat2col"] .para-h3 { font-size: 1.06em; }
 html[data-theme="twocol"] .para-h4, html[data-theme="twocol"] .para-h5, html[data-theme="twocol"] .para-h6,
 html[data-theme="flat2col"] .para-h4, html[data-theme="flat2col"] .para-h5, html[data-theme="flat2col"] .para-h6 { font-size: 1em; }
-/* Markdownモードの画面の1行の長さ＝PDFの1行の字数（170mm÷全角14pt＝34字。0.1emは端数の余裕）。 */
-html[data-theme="twocol"] body.markdown-mode-active, html[data-theme="flat2col"] body.markdown-mode-active { --line-max: 34.1em; }
+/* Markdownモードの画面の1行の長さ＝PDFの1行の字数（170mm÷全角16pt＝30字。0.1emは端数の余裕）。 */
+html[data-theme="twocol"] body.markdown-mode-active, html[data-theme="flat2col"] body.markdown-mode-active { --line-max: 30.1em; }
 
 /* ------------------------------------------------------------------
    印刷（PDF化）用のフォント・差し色。印刷は常に白地・黒文字が基本方針なので
@@ -230,7 +231,7 @@ html[data-theme="minimal"] body.print-active {
   --p-font-body: 'Zen Old Mincho', 'Noto Serif JP', serif;
   --p-accent: #8a1f1f;
 }
-/* フラット２段はフラットと同じ書体・差し色（PDFの本文14ptはstyle.cssの「デザイン『2段組』」）。 */
+/* フラット２段はフラットと同じ書体・差し色（PDFの本文16ptはstyle.cssの「デザイン『2段組』」）。 */
 html[data-theme="flat"] body.print-active,
 html[data-theme="flat2col"] body.print-active {
   --p-font-head: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
@@ -247,7 +248,7 @@ html[data-theme="site"] body.print-active {
   --p-font-body: 'Noto Sans JP', sans-serif;
   --p-accent: #e94709;
 }
-/* 2段組は和モダンと同じ書体・差し色（PDFの本文14ptはstyle.cssの「デザイン『2段組』」）。 */
+/* 2段組は和モダンと同じ書体・差し色（PDFの本文16ptはstyle.cssの「デザイン『2段組』」）。 */
 html[data-theme="twocol"] body.print-active {
   --p-font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
   --p-font-body: 'Noto Serif JP', serif;

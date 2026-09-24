@@ -1984,9 +1984,9 @@ const THEMES = [
   { id: "minimal", label: "文書（ミニマル）", desc: "公文書仕様に近い白黒" },
   { id: "editorial", label: "エディトリアル", desc: "雑誌風・明朝・ゆったり" },
   { id: "wamodan", label: "和モダン", desc: "エディトリアルより余白広め" },
-  { id: "twocol", label: "和風２段", desc: "和モダン＋本文14pt（2ページ/枚の印刷で9〜10pt）" },
+  { id: "twocol", label: "和風２段", desc: "和モダン＋本文16pt（2ページ/枚の印刷で11pt前後）" },
   { id: "flat", label: "フラット", desc: "カード区切りのSaaS系" },
-  { id: "flat2col", label: "フラット２段", desc: "フラット＋本文14pt（2ページ/枚の印刷で9〜10pt）" },
+  { id: "flat2col", label: "フラット２段", desc: "フラット＋本文16pt（2ページ/枚の印刷で11pt前後）" },
   { id: "site", label: "サイト", desc: "紺×朱、公開サイトの配色" },
 ];
 const DEFAULT_THEME = "minimal";
@@ -2055,12 +2055,12 @@ function probeHeadingMarginTopEm(level) {
 }
 
 // デザインごとに違う、PDF（サイドバーなし）の組み。ここに無いデザインは既定（本文12pt・1行40字）。
-// 「和風２段」「フラット２段」は、PDFを2ページ/枚に割り付けて読む前提で、本文14pt・1行34字
+// 「和風２段」「フラット２段」は、PDFを2ページ/枚に割り付けて読む前提で、本文16pt・1行30字
 // （A4縦・1段のまま。style.cssの「デザイン『2段組』」参照）。割り付けの縮小率はLetter横で約0.67倍・
-// A4横で約0.71倍なので、本文は9.3〜9.9ptになる。数値自体は色・書体に依らないため両テーマで共有する。
+// A4横で約0.71倍なので、本文は10.7〜11.4ptになる。数値自体は色・書体に依らないため両テーマで共有する。
 const TWOCOL_PRINT_LAYOUT = {
-  bodyPt: 14, headPt: [19, 17, 15], chars: 34, layout: "A4縦・1段",
-  note: "PDFを2ページ/枚に割り付けた時に本文が9〜10pt（Letter横で約9.3pt、A4横で約9.9pt）になる大きさです。h1〜h3は、Markdownの見出し（#〜###）の大きさです（ツールバーの見出しは項番設定どおり）。サイドノートがある文書は従来のサイドバー付きの版面になります。",
+  bodyPt: 16, headPt: [22, 19, 17], chars: 30, layout: "A4縦・1段",
+  note: "PDFを2ページ/枚に割り付けた時に本文が11pt前後（Letter横で約10.7pt、A4横で約11.4pt）になる大きさです。h1〜h3は、Markdownの見出し（#〜###）の大きさです（ツールバーの見出しは項番設定どおり）。サイドノートがある文書は従来のサイドバー付きの版面になります。",
 };
 const NO_SIDEBAR_PRINT_LAYOUT = {
   twocol: TWOCOL_PRINT_LAYOUT,
