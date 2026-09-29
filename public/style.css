@@ -94,6 +94,20 @@ body {
 .mock-bullet { display: flex; align-items: center; gap: 6px; }
 .mock-dot { width: 4px; height: 4px; border-radius: 50%; background: #b9bdc5; flex: none; }
 .mock-code { height: 26px; border-radius: 6px; background: #f0f1f3; border-left: 3px solid #d7dade; }
+/* 画像・スクショにもサイドノートを付けられることを示す：本文側のスクショ枠と、サイド側の画像付きノート。 */
+.mock-shot-wrap { display: flex; align-items: flex-start; gap: 4px; }
+.mock-shot { flex: 0 1 68%; border: 1px solid #d7dade; border-radius: 6px; overflow: hidden; background: #fff; }
+.mock-shot-bar { height: 9px; background: #eceef1; display: flex; align-items: center; gap: 3px; padding: 0 5px; }
+.mock-shot-bar i { width: 3px; height: 3px; border-radius: 50%; background: #b9bdc5; }
+.mock-shot-body { position: relative; height: 46px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.mock-shot-line { height: 6px; border-radius: 3px; background: #eceef1; }
+.mock-shot-hl { position: absolute; right: 12px; bottom: 7px; width: 42%; height: 16px; border: 2px solid #ff4b4b; border-radius: 4px; background: rgba(255,75,75,.08); }
+.mock-note-image .mock-note-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 5px; }
+.mock-thumb {
+  height: 34px; border-radius: 4px; border: 1px solid rgba(255,75,75,.4); background: rgba(255,75,75,.10);
+  color: rgba(255,75,75,.55); display: flex; align-items: center; justify-content: center;
+}
+.mock-thumb svg { width: 16px; height: 16px; }
 
 /* ── ボタン共通（templexの黒塗り/白抜き2種） ── */
 .btn-outline, .btn-primary {
