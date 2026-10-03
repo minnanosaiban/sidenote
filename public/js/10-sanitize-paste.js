@@ -187,5 +187,5 @@ function updatePlaceholder() {
 doc.addEventListener("input", () => { updatePlaceholder(); renumberAndLayout(); autoSaveDebounced(); });
 resetDoc();
 updatePlaceholder();
-// 初回読み込み時の通し番号・書式ツールバーの状態反映と、Undo履歴の初回セットは、
-// 全ファイルの定義が揃ってから99-init.jsでまとめて行う（別ファイルの関数を呼ぶため）。
+// 通し番号・書式ツールバーの状態反映などの初期化は、全ファイルの定義が揃ってから
+// 99-init.jsでまとめて行う（別ファイルの関数を呼ぶため）。

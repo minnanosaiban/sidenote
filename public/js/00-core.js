@@ -126,7 +126,7 @@ let currentPdfDoc = null;         // pdf.jsのPDFDocumentProxy（再レンダリ
 let currentPdfDataUrl = null;     // 保存(.json)にそのまま埋め込む元PDFのdata URL
 // Markdownモード（「表を挿入」の右のチェックボックス）。.md書き出しに反映されない書式・サイドノートを
 // グレーアウトする（updateFormatToolbarState・handleSelection参照）。updateFormatToolbarStateは
-// このファイル下部で初回呼び出しされるため、その時点までにここで初期化しておく必要がある。
+// 起動時（99-init.js）に初回呼び出しされるため、それまでにここで初期化しておく必要がある。
 const MARKDOWN_MODE_KEY = "sidenote-markdown-mode-v1";
 let markdownMode = false;
 try { markdownMode = localStorage.getItem(MARKDOWN_MODE_KEY) === "1"; } catch (err) { /* noop */ }

@@ -160,7 +160,6 @@ function checkAutoSaveOnLoad() {
     }
   };
 }
-checkAutoSaveOnLoad();
 
 // ---- 元に戻す／やり直し（Ctrl+Z / Ctrl+Y） ----
 // 変更箇所ごとに個別の記録を仕込むのではなく、保存（serializeProject）と同じ形のスナップショットを

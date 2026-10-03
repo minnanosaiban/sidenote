@@ -53,7 +53,6 @@ colorPickerEl.querySelectorAll(".color-swatch").forEach((btn) => {
     updateColorPickerSelection();
   };
 });
-updateColorSwatchLabels();
 // 黒・青の名前（自分／共有相手）を変える「設定」ボタンは2026-09に廃止した（既定名のまま固定。
 // .jsonに保存済みの名前は開いた時だけそのまま反映する＝applyProjectData参照）。
 
@@ -107,8 +106,6 @@ function applyEditMenuVisibility() {
   formatToolbarEl.hidden = currentMode === "pdf" || !menuVisibleState.menu2;
   menu2VisibleToggle.checked = menuVisibleState.menu2;
 }
-applyMenuSticky();
-applyEditMenuVisibility();
 menu2StickyToggle.onchange = () => {
   menuStickyState.menu2 = menu2StickyToggle.checked;
   applyMenuSticky();
@@ -146,7 +143,6 @@ markdownModeToggle.onchange = () => {
   renumberAndLayout();
   updateFooterInfo();
 };
-// （applyMarkdownMode()の初回呼び出しは99-init.jsで行う）
 
 // 上段メニュー固定の代わりの「↑」ボタン：ページの一番上（ヒーロー）ではなく、「新しい作業」「開く」などの
 // ファイル操作の行（#toolbarMenu1）の位置へ戻す（2026-09指定。ヒーローまで戻ると、そこからまた下へ
@@ -164,7 +160,6 @@ backToTopBtn.onclick = () => {
   const top = toolbarMenu1El.getBoundingClientRect().top + window.scrollY - BACK_TO_MENU_MARGIN;
   window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
 };
-updateBackToTopBtn();
 
 // ---- デザイン（テーマ）切替 ----
 // 2026-09、「ダークUI」を独立したテーマから外し、どのテーマにも重ねられる「ダークモード」トグル
@@ -384,8 +379,6 @@ NUMBERING_TYPES.forEach((type) => {
     autoSaveDebounced();
   };
 });
-refreshStyleSettingInputs();
-refreshNumberingSettingInputs();
 
 // 段落の行頭テキストが項番の型（第１型／１型／⑴型／ア型）のどれかに一致するかを判定する。
 // マッチしなければnull。textContentは配下のspan（傍点・note-anchor等）の入れ子に関わらず
