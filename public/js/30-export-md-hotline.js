@@ -50,7 +50,7 @@ function tableRowToMarkdown(cells) {
 function blockParaToMarkdown(paraEl) {
   if (paraEl.classList.contains("para-image")) {
     const img = paraEl.querySelector(".para-image-img");
-    return { type: "image", text: `![](${img ? img.src : ""})` };
+    return { type: "image", text: `![](${img ? (img.getAttribute("src") || img.dataset.externalSrc || "") : ""})` };
   }
   if (paraEl.classList.contains("para-hr")) return { type: "hr", text: "---" };
   if (paraEl.classList.contains("para-pagebreak")) return { type: "pagebreak", text: "<!-- pagebreak -->" };

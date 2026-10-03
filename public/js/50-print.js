@@ -148,10 +148,13 @@ function buildPrintDoc() {
 
     if (child.classList.contains("para-image")) {
       const imgEl = child.querySelector(".para-image-img");
-      const printImg = document.createElement("img");
-      printImg.className = "print-img";
-      printImg.src = imgEl.src;
-      printDocEl.appendChild(printImg);
+      // 未読み込みの外部画像（srcが無い）は、通信を起こさないよう印刷版面にも出さない。
+      if (imgEl.getAttribute("src")) {
+        const printImg = document.createElement("img");
+        printImg.className = "print-img";
+        printImg.src = imgEl.src;
+        printDocEl.appendChild(printImg);
+      }
 
       const badge = child.querySelector(".note-anchor");
       const num = badge?.querySelector(".note-num")?.textContent;

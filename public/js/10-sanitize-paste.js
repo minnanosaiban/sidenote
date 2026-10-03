@@ -28,6 +28,9 @@ const escapeAttr = (s) => escapeHtml(s).replace(/"/g, "&quot;").replace(/'/g, "&
 // このアプリ自身が実際に組み立てるタグ・属性だけを許可するアローリストとして無害化する
 // （画像・表・区切り線ブロックの「＋ノート」「×」ボタンとそのSVGアイコンも#doc内の実DOMなので対象に含む。
 // 削らないと再読み込み後にbindImageParaEvents等のquerySelectorがnullになりTypeErrorで初期化が止まる）。
+// 画像の読み込み元が「同梱（data:image/…）」か。それ以外（http(s)等）は自動では読み込まない。
+const isInlineImageSrc = (src) => /^data:image\//i.test(String(src).trim());
+
 const DOC_HTML_ALLOWED_TAGS = [
   "div", "span", "sup", "b", "u", "strong", "em", "i", "del", "code", "a", "br",
   "table", "thead", "tbody", "tr", "th", "td", "img", "hr", "button", "svg", "path",
@@ -48,6 +51,21 @@ const DOC_HTML_ALLOWED_STYLE_PROPS = [
   "text-align", "padding-left", "text-indent", "font-size", "font-weight", "font-style",
   "color", "text-decoration",
 ];
+// 外部URLの画像は、開いただけで外部へアクセスが走る（誰がいつ開いたかを送り主に知られる）ため、
+// 読み込み時にsrcを外してdata-external-srcへ退避する。画面側（ensureExternalImagePlaceholder）が
+// 「読み込む」ボタン付きのプレースホルダーに差し替え、利用者が押した時だけ読み込む。
+// 同梱の画像（data:image/…）はそのまま通す。
+function neutralizeExternalImage(node) {
+  if (node.tagName !== "IMG") return;
+  const src = node.getAttribute("src");
+  if (src === null || isInlineImageSrc(src)) return;
+  if (/^https?:/i.test(src.trim())) node.setAttribute("data-external-src", src.trim());
+  node.removeAttribute("src");
+}
+function restrictDocAttrs(node) {
+  neutralizeExternalImage(node);
+  restrictStyleAttr(node);
+}
 function restrictStyleAttr(node) {
   if (!node.getAttribute || !node.hasAttribute("style")) return;
   const kept = [];
@@ -69,7 +87,7 @@ function sanitizeDocHtml(html) {
     // innerHTMLへ入れる（＝対策が効かない）よりは読み込みそのものを拒否する方が安全（フェイルクローズ）。
     throw new Error("サニタイズ用ライブラリの読み込みに失敗しました。ページを再読み込みしてから、もう一度お試しください。");
   }
-  window.DOMPurify.addHook("afterSanitizeAttributes", restrictStyleAttr);
+  window.DOMPurify.addHook("afterSanitizeAttributes", restrictDocAttrs);
   try {
     return window.DOMPurify.sanitize(html, {
       ALLOWED_TAGS: DOC_HTML_ALLOWED_TAGS,

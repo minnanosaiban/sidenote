@@ -103,8 +103,11 @@ function updateTableNoteButtons() {
 // 位置決めだけは本体要素のrectを使う（通し番号・スレッドの紐付けはバッジ＝mark側のまま変えない）。
 function getPositionRect(mark) {
   if (mark.classList.contains("img-note-anchor")) {
-    const img = mark.closest(".para-image")?.querySelector(".para-image-img");
-    if (img) return img.getBoundingClientRect();
+    const imgPara = mark.closest(".para-image");
+    const img = imgPara?.querySelector(".para-image-img");
+    // 未読み込みの外部画像はimgが非表示で位置を持たないので、ブロック全体の位置を使う。
+    if (img && !img.hidden) return img.getBoundingClientRect();
+    if (imgPara) return imgPara.getBoundingClientRect();
   }
   if (mark.classList.contains("tbl-note-anchor")) {
     const table = mark.closest(".para-table")?.querySelector(".para-table-el");

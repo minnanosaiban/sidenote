@@ -457,6 +457,7 @@ body.markdown-mode-active {
 .para-image { margin: 16px 0; padding: 12px; border-radius: var(--radius); background: var(--surface); }
 .para-image-inner { display: flex; flex-direction: column; gap: 8px; }
 .para-image-img { max-width: 100%; display: block; border-radius: 6px; }
+.para-image-img[hidden] { display: none; }
 .para-image-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 /* メタボタン（＋ノート／×削除）はチロムと同じ扱い＝テーマに関わらず常にこの色。 */
 .para-image-note-btn {
@@ -1048,3 +1049,17 @@ body.print-active .print-pdf-mark-rect span {
 /* サイドノート本文はページ画像の右の余白（外）へ絶対座標のtopだけ変えて並べる。段落側の
    .print-para .print-asideと違いfloatではないので、marginではなくrightのマイナス値で逃がす。 */
 body.print-active .print-pdf-page .print-aside { position: absolute; left: 100%; margin-left: 3mm; width: 48mm; float: none; }
+
+/* 外部URLの画像（自動では読み込まず、「読み込む」を押した時だけ読み込む。80-blocks-import.js） */
+.para-image-external {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  padding: 12px; border: 1px dashed var(--tx-border, #bbb); border-radius: 6px;
+  font-size: 13px; color: var(--tx-muted, #666);
+}
+.para-image-external-url { word-break: break-all; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+.para-image-load-btn {
+  padding: 4px 12px; border: 1px solid var(--tx-border, #bbb); border-radius: 6px;
+  background: var(--surface, #fff); color: inherit; cursor: pointer; font: inherit;
+}
+.para-image-load-btn:hover { background: var(--tx-bg-muted, #eee); }
+@media print { .para-image-external { display: none; } }

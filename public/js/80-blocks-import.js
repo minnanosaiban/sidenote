@@ -152,8 +152,13 @@ function buildImageParaEl(paraId, src) {
 
   const img = document.createElement("img");
   img.className = "para-image-img";
-  img.src = src;
   img.alt = "画像";
+  if (isInlineImageSrc(src)) {
+    img.src = src;
+  } else {
+    // 外部URL（Markdownの![](https://…)等）は自動では読み込まない（ensureExternalImagePlaceholder参照）。
+    img.dataset.externalSrc = String(src);
+  }
   inner.appendChild(img);
 
   const notesRow = document.createElement("div");
@@ -161,10 +166,55 @@ function buildImageParaEl(paraId, src) {
   wrap.appendChild(notesRow);
   wrap.appendChild(inner);
 
+  ensureExternalImagePlaceholder(wrap);
   return wrap;
 }
 
+// 外部URLの画像は、開いた・取り込んだだけで外部へアクセスしないよう、画像の代わりにURLと
+// 「読み込む」ボタンを出す（利用者が押した時だけ読み込む）。.json／自動保存の復元時は
+// sanitizeDocHtmlがsrcを外してdata-external-srcへ退避するので、読み込み済みだった画像も
+// 開き直すとここで再び「未読み込み」に戻る（開くたびに許可を求める＝安全側）。
+function ensureExternalImagePlaceholder(wrap) {
+  const img = wrap.querySelector(".para-image-img");
+  const url = img && img.dataset.externalSrc;
+  const existing = wrap.querySelector(".para-image-external");
+  if (!img || !url || img.getAttribute("src")) { if (existing) existing.remove(); return; }
+  img.hidden = true;
+  let box = existing;
+  if (!box) {
+    box = document.createElement("div");
+    box.className = "para-image-external";
+    const msg = document.createElement("div");
+    msg.className = "para-image-external-msg";
+    msg.textContent = "外部の画像です（通信が発生するため、自動では読み込んでいません）";
+    const urlEl = document.createElement("div");
+    urlEl.className = "para-image-external-url";
+    urlEl.textContent = url;
+    box.appendChild(msg);
+    box.appendChild(urlEl);
+    if (/^https?:/i.test(url)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "para-image-load-btn";
+      btn.textContent = "読み込む";
+      box.appendChild(btn);
+    }
+    img.parentNode.insertBefore(box, img);
+  }
+  const loadBtn = box.querySelector(".para-image-load-btn");
+  if (loadBtn) {
+    loadBtn.onclick = () => {
+      img.hidden = false;
+      img.onload = () => renumberAndLayout();
+      img.src = url;
+      box.remove();
+      autoSaveDebounced();
+    };
+  }
+}
+
 function bindImageParaEvents(wrap) {
+  ensureExternalImagePlaceholder(wrap);
   const noteBtn = wrap.querySelector(".para-image-note-btn");
   noteBtn.onclick = () => {
     pendingTarget = { type: "image", paraEl: wrap };
