@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "wrangler pages dev",
     "test": "node --test \"test/*.test.js\"",
-    "deploy": "wrangler pages deploy"
+    "deploy": "wrangler pages deploy",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "acorn": "^8.18.0",
     "wrangler": "^4.105.0"
   }

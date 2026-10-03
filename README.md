@@ -63,6 +63,14 @@ npm run dev           # http://localhost:8788 で確認
 ```
 `python -m http.server -d public 8000` でも構いません。
 
+## テスト
+
+```bash
+npm test             # 単体テスト（Markdownパーサー、JSの読み込み順）。ブラウザ不要
+npm run test:e2e     # ブラウザテスト（Playwright）。本番と同じCSPを付けたサーバーで実際に動かす
+```
+ブラウザテストは、同梱のChromium（初回のみ `npx playwright install chromium`）か、インストール済みのChrome/Edge（`PW_CHANNEL=chrome` または `msedge` を付けて実行）で動きます。起動、Markdownの取り込み、サイドノート、自動保存、`.json`・`.md`・`.docx`の書き出し、PDFモード、悪意ある入力（属性注入・不正な`.json`）、外部画像の扱い、外部への通信が無いこと、を確認します。
+
 ## 公開（Cloudflare Pages）
 
 ```bash

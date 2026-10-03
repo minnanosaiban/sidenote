@@ -68,7 +68,7 @@ async function startNewPdfProject(dataUrl, filename) {
 let pdfjsLibPromise = null;
 function loadPdfjsLib() {
   if (!pdfjsLibPromise) {
-    pdfjsLibPromise = import("./vendor/pdfjs/pdf.min.mjs").then((mod) => {
+    pdfjsLibPromise = import("../vendor/pdfjs/pdf.min.mjs").then((mod) => {
       mod.GlobalWorkerOptions.workerSrc = "vendor/pdfjs/pdf.worker.min.mjs";
       return mod;
     });
