@@ -45,7 +45,7 @@
 - 保存（.json）はタイトル＋日時付きファイルに書き出します。画像・PDF本体はdata URLとして内包するため1ファイルで完結します。あわせてlocalStorageへの自動保存もあり、次回起動時に「続きから再開」で復元できます。
 - 保存（.pdf）は独自のPDF生成ライブラリを使わず、ブラウザ標準の印刷機能（印刷用CSS＋`window.print()`）を利用します。本文モードはサイドノートを段落の隣にfloatで配置するTufte CSS方式、PDFモードはページ画像に対する絶対座標で配置します。「.pdf」ボタンで白黒を選んだ時は、印刷版面の画像をCanvasで灰色に変換（`convertPrintImagesToGray`）し、bodyに`.print-bw`を付けて文字・線・サイドノートの色を黒にしてから印刷します。
 - React / Next.js は使用していません（素のHTML＋バニラJSで実装しています）。
-- アイコンは Bootstrap Icons（MIT License）から使う分だけSVGをそのまま埋め込んでいます。デザイン用の書体は Google Fonts から読み込んでいます。詳細は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
+- アイコンは Bootstrap Icons（MIT License）から使う分だけSVGをそのまま埋め込んでいます。デザイン用の書体（Google Fonts、OFL）は `public/fonts/` に同梱しており、外部サーバーとは通信しません。詳細は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
 
 ## ファイル形式の使い分け
 

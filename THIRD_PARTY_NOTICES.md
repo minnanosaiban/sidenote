@@ -53,12 +53,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Google Fonts（7種類のデザイン用の書体）
 
-`public/index.html` から `fonts.googleapis.com` 経由で以下の書体を読み込んでいます（CDN読み込みで、
-ファイル自体は同梱していません）。いずれも Open Font License（OFL）または類似の無償ライセンスで
-配布されている書体です。
+Google Fonts が配信している woff2 を、`public/fonts/files/` に同梱しています（2026-10、外部への
+通信をなくすため、CDN読み込みから変更）。`public/fonts/fonts.css` が、Google Fonts の配信CSSの
+`@font-face`（`unicode-range` による分割を含む）の参照先だけを同梱ファイルに書き換えたものです。
+いずれも SIL Open Font License 1.1（OFL）で配布されている書体で、ライセンス全文は
+https://openfontlicense.org/ および各書体のGoogle Fontsのページで確認できます。
 
 - Shippori Mincho / Zen Old Mincho / Zen Kaku Gothic New（フォントワークス、SIL OFL）
 - Noto Serif JP / Noto Sans JP（Google、SIL OFL）
 - JetBrains Mono（JetBrains、SIL OFL）
 
-出典: https://fonts.google.com/
+出典: https://fonts.google.com/（再取得する場合は、同ページの配信CSSから `fonts.css` を作り直す）
