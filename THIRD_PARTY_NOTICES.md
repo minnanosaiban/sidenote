@@ -59,8 +59,14 @@ Google Fonts が配信している woff2 を、`public/fonts/files/` に同梱�
 いずれも SIL Open Font License 1.1（OFL）で配布されている書体で、ライセンス全文は
 https://openfontlicense.org/ および各書体のGoogle Fontsのページで確認できます。
 
-- Shippori Mincho / Zen Old Mincho / Zen Kaku Gothic New（フォントワークス、SIL OFL）
-- Noto Serif JP / Noto Sans JP（Google、SIL OFL）
-- JetBrains Mono（JetBrains、SIL OFL）
+- Noto Sans JP：Copyright 2014-2021 Adobe（Reserved Font Name 'Source'）
+- Noto Serif JP：Copyright 2012 Google Inc.
+- Shippori Mincho：Copyright 2021 The Shippori Mincho Project Authors
+- Zen Old Mincho：Copyright 2021 The Zen Old Mincho Project Authors
+- Zen Kaku Gothic New：Copyright 2022 The Zen Kaku Gothic Project Authors
+- JetBrains Mono：Copyright 2020 The JetBrains Mono Project Authors
+
+各書体のライセンス全文（OFL 1.1）は `public/fonts/licenses/OFL-<書体名>.txt` に同梱しています
+（Google Fonts のリポジトリ https://github.com/google/fonts の各書体の OFL.txt と同じもの）。
 
 出典: https://fonts.google.com/（再取得する場合は、同ページの配信CSSから `fonts.css` を作り直す）
