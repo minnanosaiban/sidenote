@@ -50,7 +50,9 @@ function tableRowToMarkdown(cells) {
 function blockParaToMarkdown(paraEl) {
   if (paraEl.classList.contains("para-image")) {
     const img = paraEl.querySelector(".para-image-img");
-    return { type: "image", text: `![](${img ? (img.getAttribute("src") || img.dataset.externalSrc || "") : ""})` };
+    // 説明文は取り込み時のdata-alt。記法を壊す]と改行は除く（md-parser.jsのRE_IMAGE_LINEは]のエスケープに非対応）。
+    const alt = img && img.dataset.alt ? img.dataset.alt.replace(/[\[\]]/g, "").replace(/\s+/g, " ").trim() : "";
+    return { type: "image", text: `![${alt}](${img ? (img.getAttribute("src") || img.dataset.externalSrc || "") : ""})` };
   }
   if (paraEl.classList.contains("para-hr")) return { type: "hr", text: "---" };
   if (paraEl.classList.contains("para-pagebreak")) return { type: "pagebreak", text: "<!-- pagebreak -->" };

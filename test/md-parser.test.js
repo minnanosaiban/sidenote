@@ -87,6 +87,11 @@ test("単独行の画像", () => {
   assert.deepEqual(blocks("![alt](http://x/a.png)"), [{ type: "image", alt: "alt", url: "http://x/a.png" }]);
 });
 
+test("単独行の画像: 日本語・空白を含む説明文も保たれる", () => {
+  assert.deepEqual(blocks("![図1 全体の様子](https://x/a.png)"), [{ type: "image", alt: "図1 全体の様子", url: "https://x/a.png" }]);
+  assert.deepEqual(blocks("![](https://x/a.png)"), [{ type: "image", alt: "", url: "https://x/a.png" }]);
+});
+
 test("リスト: 階層（インデント2字＝1段）と連番", () => {
   const b = blocks("1. a\n2. b\n  - c\n3. d");
   assert.deepEqual(b.map((x) => [x.type, x.ordered, x.indentLevel]), [

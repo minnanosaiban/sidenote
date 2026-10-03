@@ -122,7 +122,9 @@ function insertPageBreakBlock() {
 }
 insertPageBreakBtn.onclick = insertPageBreakBlock;
 
-function buildImageParaEl(paraId, src) {
+// altは「Markdownの![説明](url)の説明」。画面のalt属性は常に「画像」のままにし、書き出し用に元の説明だけをdata-altで持つ
+// （.md書き出しで説明が消えないようにするため。貼り付け・挿入した画像は説明が無いので空のまま）。
+function buildImageParaEl(paraId, src, alt) {
   const wrap = document.createElement("div");
   wrap.className = "para para-image para-opaque";
   wrap.contentEditable = "false";
@@ -153,6 +155,7 @@ function buildImageParaEl(paraId, src) {
   const img = document.createElement("img");
   img.className = "para-image-img";
   img.alt = "画像";
+  if (alt) img.dataset.alt = String(alt);
   if (isInlineImageSrc(src)) {
     img.src = src;
   } else {
@@ -444,7 +447,7 @@ function buildBlockEl(b) {
   if (b.type === "hr") return buildHrParaEl("hr" + hrIdSeq++);
   if (b.type === "pagebreak") return buildPageBreakParaEl("pb" + hrIdSeq++);
   if (b.type === "table") return buildTableParaEl("tbl" + tableIdSeq++, b.header, b.aligns, b.rows);
-  if (b.type === "image") return buildImageParaEl("img" + imageIdSeq++, b.url);
+  if (b.type === "image") return buildImageParaEl("img" + imageIdSeq++, b.url, b.alt);
   return null;
 }
 
