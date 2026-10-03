@@ -295,18 +295,69 @@ const DOC_HTML_ALLOWED_ATTR = [
 // マッチせず、DOMPurifyが自動的にその属性ごと除去する）。
 const DOC_HTML_ALLOWED_URI = /^(?:(?:https?|mailto):|data:image\/[a-z0-9.+-]+;base64,|[^a-z:]|[a-z][a-z0-9+.-]*(?:[^a-z0-9+.-:]|$))/i;
 
+// 保存データのstyle属性は、このアプリが書き込むプロパティだけに絞る。
+// position:fixed等を許すと、共有された.jsonに「画面全体を覆うリンク」を仕込まれて
+// クリックを乗っ取られる（url()による外部読み込みも同様に塞ぐ）。
+const DOC_HTML_ALLOWED_STYLE_PROPS = [
+  "text-align", "padding-left", "text-indent", "font-size", "font-weight", "font-style",
+  "color", "text-decoration",
+];
+function restrictStyleAttr(node) {
+  if (!node.getAttribute || !node.hasAttribute("style")) return;
+  const kept = [];
+  const st = node.style;
+  for (let i = 0; i < st.length; i++) {
+    const prop = st[i];
+    const value = st.getPropertyValue(prop);
+    if (DOC_HTML_ALLOWED_STYLE_PROPS.includes(prop) && !/url\s*\(|expression|javascript:/i.test(value)) {
+      kept.push(`${prop}:${value}`);
+    }
+  }
+  if (kept.length) node.setAttribute("style", kept.join(";"));
+  else node.removeAttribute("style");
+}
+
 function sanitizeDocHtml(html) {
   if (typeof window.DOMPurify === "undefined") {
     // 同梱のvendor/dompurifyが何らかの理由で読み込めていない場合、無害化できないまま
     // innerHTMLへ入れる（＝対策が効かない）よりは読み込みそのものを拒否する方が安全（フェイルクローズ）。
     throw new Error("サニタイズ用ライブラリの読み込みに失敗しました。ページを再読み込みしてから、もう一度お試しください。");
   }
-  return window.DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: DOC_HTML_ALLOWED_TAGS,
-    ALLOWED_ATTR: DOC_HTML_ALLOWED_ATTR,
-    ALLOWED_URI_REGEXP: DOC_HTML_ALLOWED_URI,
-    ALLOW_DATA_ATTR: true,   // data-anchor-id・data-para-id等、段落の状態を持たせるdata-*属性一式
+  window.DOMPurify.addHook("afterSanitizeAttributes", restrictStyleAttr);
+  try {
+    return window.DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: DOC_HTML_ALLOWED_TAGS,
+      ALLOWED_ATTR: DOC_HTML_ALLOWED_ATTR,
+      ALLOWED_URI_REGEXP: DOC_HTML_ALLOWED_URI,
+      ALLOW_DATA_ATTR: true,   // data-anchor-id・data-para-id等、段落の状態を持たせるdata-*属性一式
+    });
+  } finally {
+    window.DOMPurify.removeHook("afterSanitizeAttributes");
+  }
+}
+
+// ---- .json／自動保存から読み込んだ値の形の検証 ----
+// 形が違う値（手で書き換えた・壊れたファイル）は、状態を書き換える前に弾く／捨てる。
+function normalizeNotesByAnchor(raw) {
+  const out = [];
+  if (!Array.isArray(raw)) return out;
+  raw.forEach((entry) => {
+    if (!Array.isArray(entry) || typeof entry[0] !== "string" || !Array.isArray(entry[1])) return;
+    const notes = entry[1]
+      .filter((n) => n && typeof n === "object" && typeof n.text === "string")
+      .map((n) => ({ id: String(n.id), text: n.text, color: ["black", "blue", "red"].includes(n.color) ? n.color : "black" }));
+    out.push([entry[0], notes]);
   });
+  return out;
+}
+const isNum = (v) => typeof v === "number" && Number.isFinite(v);
+function isValidPdfAnchor(a) {
+  if (!a || typeof a !== "object" || typeof a.anchorId !== "string" || !Number.isInteger(a.page) || a.page < 0) return false;
+  const isRect = (r) => r && isNum(r.x) && isNum(r.y) && isNum(r.w) && isNum(r.h);
+  if (a.kind === "text") return Array.isArray(a.rects) && a.rects.length > 0 && a.rects.every(isRect);
+  if (a.kind === "point") return !!a.point && isNum(a.point.x) && isNum(a.point.y);
+  if (a.kind === "rect") return isRect(a.rect);
+  return false;
 }
 
 // 選択範囲がロック済み注釈（.note-anchor）やオペーク型ブロック（画像・表・水平線）にかかっていないか確認する。
@@ -427,7 +478,13 @@ function serializeProject() {
 }
 
 async function applyProjectData(data) {
-  if (!data) throw new Error("invalid project data");
+  if (!data || typeof data !== "object") throw new Error("invalid project data");
+  // 状態を書き換える前に必須項目を確認する（途中で例外になって半端な状態が残るのを防ぐ）。
+  if (data.mode === "pdf" ? typeof data.pdfDataUrl !== "string" : typeof data.docHTML !== "string") {
+    throw new Error("invalid project data");
+  }
+  const loadedNotes = normalizeNotesByAnchor(data.notesByAnchor);
+  const hasNotesArray = Array.isArray(data.notesByAnchor);
   // 「項番設定」パネルの内容もこのファイルの値で上書きする（モードに関わらず共通、無ければ既定値）。
   paraStyleSettings = mergeParaStyleSettings(data.paraStyleSettings);
   numberingSettings = mergeNumberingSettings(data.numberingSettings);
@@ -436,9 +493,8 @@ async function applyProjectData(data) {
   updateFooterInfo();   // 見出しスタイル設定はファイルごとに変わるため、読み込み時にも反映する
 
   if (data.mode === "pdf") {
-    if (typeof data.pdfDataUrl !== "string") throw new Error("invalid pdf project data");
     notesByAnchor.clear();
-    if (Array.isArray(data.notesByAnchor)) data.notesByAnchor.forEach(([anchorId, notes]) => notesByAnchor.set(anchorId, notes || []));
+    loadedNotes.forEach(([anchorId, notes]) => notesByAnchor.set(anchorId, notes));
     anchorIdSeq = typeof data.anchorIdSeq === "number" ? data.anchorIdSeq : notesByAnchor.size + 1;
     replyIdSeq = typeof data.replyIdSeq === "number" ? data.replyIdSeq : replyIdSeq;
     if (data.colorNames && data.colorNames.black) colorNames.black = data.colorNames.black;
@@ -449,16 +505,17 @@ async function applyProjectData(data) {
     openedMdFilename = null;   // .jsonを開いた＝以後のCtrl+Sは.json保存に戻す
     openedMdFileHandle = null;
     updateOpenedFileNote();
-    return renderPdfFromDataUrl(data.pdfDataUrl, Array.isArray(data.pdfAnchors) ? data.pdfAnchors : []);
+    return renderPdfFromDataUrl(data.pdfDataUrl, Array.isArray(data.pdfAnchors) ? data.pdfAnchors.filter(isValidPdfAnchor) : []);
   }
 
-  if (typeof data.docHTML !== "string") throw new Error("invalid project data");
+  // サニタイズは状態を触る前に行う（ライブラリ未読込で例外になる場合も、現在の文書を壊さない）。
+  const cleanHtml = sanitizeDocHtml(data.docHTML);
   setMode("text");
-  doc.innerHTML = sanitizeDocHtml(data.docHTML);
+  doc.innerHTML = cleanHtml;
   notesByAnchor.clear();
 
-  if (Array.isArray(data.notesByAnchor)) {
-    data.notesByAnchor.forEach(([anchorId, notes]) => notesByAnchor.set(anchorId, notes || []));
+  if (hasNotesArray) {
+    loadedNotes.forEach(([anchorId, notes]) => notesByAnchor.set(anchorId, notes));
     anchorIdSeq = typeof data.anchorIdSeq === "number" ? data.anchorIdSeq : notesByAnchor.size + 1;
     replyIdSeq = typeof data.replyIdSeq === "number" ? data.replyIdSeq : replyIdSeq;
   } else if (Array.isArray(data.notes)) {
@@ -536,7 +593,9 @@ function inlineNodeToMarkdown(node) {
   const childText = () => Array.from(node.childNodes).map(inlineNodeToMarkdown).join("");
   if (node.tagName === "A") {
     const href = node.getAttribute("href") || "";
-    return `[${childText()}](${href})`;
+    // Markdownのリンク先に空白や括弧があると記法が壊れるため、<>で囲む（CommonMark）。
+    const dest = /[\s()]/.test(href) ? `<${href}>` : href;
+    return `[${childText()}](${dest})`;
   }
   if (node.tagName === "U") return `<u>${childText()}</u>`;
   const wrap = MD_INLINE_WRAP[node.tagName];
@@ -1638,6 +1697,7 @@ docLeftEl.addEventListener("drop", async (e) => {
 
 // ---- 自動保存（ブラウザ内・安全網） ----
 const AUTOSAVE_KEY = "sidenote-autosave-v1";
+let autoSaveFailureNotified = false;
 
 function autoSave() {
   const snap = serializeProject();
@@ -1645,7 +1705,12 @@ function autoSave() {
   try {
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(snap));
   } catch (err) {
-    // 容量超過等は無視。明示保存（.json書き出し）があるため致命的ではない。
+    // 容量超過等（特にPDFモードは元PDFを丸ごと含むため起きやすい）。致命的ではないが、
+    // 黙って止まると気づけないので、セッションにつき1回だけ知らせる。
+    if (!autoSaveFailureNotified) {
+      autoSaveFailureNotified = true;
+      showToast("ブラウザ内への自動保存ができませんでした（容量不足の可能性）。「保存」で.jsonに書き出してください。", true);
+    }
   }
 }
 const autoSaveDebounced = debounce(autoSave, 800);
@@ -1734,7 +1799,7 @@ async function applyUndoSnapshot(snap) {
       refreshStyleSettingInputs();
       refreshNumberingSettingInputs();
       notesByAnchor.clear();
-      (snap.notesByAnchor || []).forEach(([anchorId, notes]) => notesByAnchor.set(anchorId, notes || []));
+      normalizeNotesByAnchor(snap.notesByAnchor).forEach(([anchorId, notes]) => notesByAnchor.set(anchorId, notes));
       anchorIdSeq = typeof snap.anchorIdSeq === "number" ? snap.anchorIdSeq : anchorIdSeq;
       replyIdSeq = typeof snap.replyIdSeq === "number" ? snap.replyIdSeq : replyIdSeq;
       titleInput.value = snap.title || "";
@@ -1744,7 +1809,7 @@ async function applyUndoSnapshot(snap) {
       if (snap.theme) applyTheme(snap.theme);
       pdfViewerEl.querySelectorAll(".pdf-mark").forEach((el) => el.remove());
       pdfAnchors = [];
-      rebuildPdfAnchors(snap.pdfAnchors || []);
+      rebuildPdfAnchors((snap.pdfAnchors || []).filter(isValidPdfAnchor));
       renumberAndLayout();
     } else {
       await applyProjectData(snap);   // initUndoHistory()は呼ばない版（このパス専用、履歴を消さない）
