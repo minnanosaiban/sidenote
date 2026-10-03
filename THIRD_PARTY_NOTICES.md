@@ -25,14 +25,14 @@ Cloudflare Pagesの公開対象なので、実際に配信されるのはここ�
 `public/vendor/dompurify/purify.min.js`に、DOMPurify（HTML無害化ライブラリ）のビルド済みファイルを
 そのまま同梱しています。CDN読み込みは行わず、ローカルで完結させています。
 `.json`（保存/共有ファイル）の`docHTML`は共有相手が用意したファイルの可能性がある外部入力のため、
-`#doc`へ`innerHTML`で差し戻す前にこれで無害化しています（`app.js`の`sanitizeDocHtml`参照）。
+`#doc`へ`innerHTML`で差し戻す前にこれで無害化しています（`public/js/10-sanitize-paste.js`の`sanitizeDocHtml`参照）。
 
 - 出典: https://github.com/cure53/DOMPurify （npm: dompurify）
 - ライセンス: Apache License 2.0 / Mozilla Public License 2.0 のデュアルライセンス（全文は `public/vendor/dompurify/LICENSE`。Apache License 2.0全文を収録）
 
 ## Bootstrap Icons
 
-`public/index.html` と `public/app.js` に、いくつかのアイコンをSVGとして直接埋め込んでいます
+`public/index.html` と `public/js/00-core.js` に、いくつかのアイコンをSVGとして直接埋め込んでいます
 （保存・開く・画像・PDF・×アイコンなど）。CDN読み込みやWebフォント同梱は行わず、
 使用する数個分のSVGパスのみをソースにコピーしています。
 

@@ -28,7 +28,7 @@
 <meta name="twitter:image" content="https://sidenote-tool.pages.dev/og-image-large.png">
 <!-- 7種類のデザイン（テーマ）の見出し・本文フォントに使うWebフォント。同梱（fonts/、THIRD_PARTY_NOTICES.md参照）。印刷（PDF化）にもそのまま使うため、ここで先読みしておく。 -->
 <link rel="stylesheet" href="fonts/fonts.css?v=1">
-<!-- ?v=NUM はキャッシュ対策。style.css/themes.css/app.jsを直す度に、直したファイルの番号だけ+1する。 -->
+<!-- ?v=NUM はキャッシュ対策。style.css/themes.css/js/*.jsを直す度に、直したファイルの番号だけ+1する。 -->
 <link rel="stylesheet" href="style.css?v=39">
 <link rel="stylesheet" href="themes.css?v=14">
 <!-- デザイン（テーマ）・ダークモードの初期反映を<body>のCSS読み込み前に済ませ、既定へ一瞬だけ戻る
@@ -518,6 +518,18 @@
 <!-- .jsonのdocHTML（共有相手から届いたファイルの可能性がある本文HTML）を無害化するため（同梱ライブラリ。
      THIRD_PARTY_NOTICES.md参照）。app.js側ではグローバルDOMPurifyとして参照する（sanitizeDocHtml参照）。 -->
 <script src="vendor/dompurify/purify.min.js"></script>
-<script src="app.js?v=51"></script>
+<script src="js/00-core.js?v=1"></script>
+<script src="js/10-sanitize-paste.js?v=1"></script>
+<script src="js/20-project-io.js?v=1"></script>
+<script src="js/30-export-md-hotline.js?v=1"></script>
+<script src="js/40-export-docx.js?v=1"></script>
+<script src="js/50-print.js?v=1"></script>
+<script src="js/60-open-autosave-undo.js?v=1"></script>
+<script src="js/70-ui-panels.js?v=1"></script>
+<script src="js/80-blocks-import.js?v=1"></script>
+<script src="js/90-format-toolbar.js?v=1"></script>
+<script src="js/95-layout.js?v=1"></script>
+<script src="js/96-pdf-mode.js?v=1"></script>
+<script src="js/99-init.js?v=1"></script>
 </body>
 </html>

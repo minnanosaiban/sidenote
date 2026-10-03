@@ -37,7 +37,7 @@
 
 ## 仕組み（ブラウザ完結）
 
-- Markdownの取り込みは `public/md-parser.js`（依存ライブラリ無しの自前パーサー）が担当し、見出し・段落・引用・水平線・表・リスト項目・コードブロック・画像のブロック配列に分解します。逆方向（本文DOM→Markdownテキスト）は `public/app.js` の `docToMarkdown()` が担当し、「MDで書き出す」で使われます。注釈・書式（配置・インデント等）は書き出しに含まれません。
+- Markdownの取り込みは `public/md-parser.js`（依存ライブラリ無しの自前パーサー）が担当し、見出し・段落・引用・水平線・表・リスト項目・コードブロック・画像のブロック配列に分解します。逆方向（本文DOM→Markdownテキスト）は `public/js/30-export-md-hotline.js` の `docToMarkdown()` が担当し、「MDで書き出す」で使われます。注釈・書式（配置・インデント等）は書き出しに含まれません。
 - 本文は`contenteditable`の段落（`.para`）単位で管理し、注釈した範囲は`contenteditable="false"`にしてロックします（原文の改変防止）。配置・インデント・ぶら下げ・スタイルは`data-*`属性で持たせ、画面・印刷（PDF化）の両方がこの属性から表示用のスタイルを組み立てます。
 - PDFモードはPDF.js（`public/vendor/pdfjs`、Apache License 2.0）で既存PDFをcanvasに描画し、テキストPDFは範囲選択、スキャンPDFはクリック／ドラッグでノートの位置（ページ空間座標）を記録します。元PDFはdata URLとして`.json`にそのまま内包します。
 - デザイン（テーマ）は `public/themes.css` の7種類のCSS変数セットを`<html data-theme="...">`経由で切り替えるだけで、本文のDOM自体は変わりません。
