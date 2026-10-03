@@ -241,3 +241,7 @@ function assignOrderedListNumbers(blocks) {
 if (typeof window !== "undefined") {
   window.MdParser = { parseMarkdownBlocks, inlineToHtml, escapeHtmlMd };
 }
+// Node（テスト：npm test）から読み込めるようにする。ブラウザでは module が無いので何もしない。
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { parseMarkdownBlocks, inlineToHtml, escapeHtmlMd, isSafeUrl };
+}
