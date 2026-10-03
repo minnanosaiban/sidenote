@@ -35,13 +35,7 @@
 <link rel="stylesheet" href="themes.css?v=14">
 <!-- デザイン（テーマ）・ダークモードの初期反映を<body>のCSS読み込み前に済ませ、既定へ一瞬だけ戻る
      ちらつき（FOUC）を防ぐ。app.js側の設定・保存内容と完全に同じキー・同じ既定値を使う。 -->
-<script>
-try {
-  var t = localStorage.getItem("sidenote-theme-v1");
-  if (t) document.documentElement.dataset.theme = t;
-  if (localStorage.getItem("sidenote-dark-mode-v1") === "1") document.documentElement.classList.add("dark-mode");
-} catch (e) { /* noop */ }
-</script>
+<script src="theme-init.js?v=1"></script>
 </head>
 <body>
 
