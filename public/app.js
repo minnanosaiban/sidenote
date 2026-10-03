@@ -267,6 +267,8 @@ function formatNoteText(raw) {
 }
 
 const escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// 属性値（"..."の中）に入れる文字列用。引用符も潰さないと属性を抜け出せる。
+const escapeAttr = (s) => escapeHtml(s).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 // ---- .jsonのdocHTML（本文を丸ごと保存/復元する値）の無害化 ----
 // .jsonは「保存の続き」だけでなく、README記載の通り共有相手とやり取りする双方向のファイル形式でもある。
@@ -772,7 +774,7 @@ function hotlineInlineHtml(node) {
   }
   if (node.tagName === "STRONG" || node.tagName === "B") return `<b>${children()}</b>`;
   if (node.tagName === "U") return `<u>${children()}</u>`;
-  if (node.tagName === "A") return `<a href="${escapeHtml(node.getAttribute("href") || "")}">${children()}</a>`;
+  if (node.tagName === "A") return `<a href="${escapeAttr(node.getAttribute("href") || "")}">${children()}</a>`;
   return children();
 }
 

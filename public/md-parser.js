@@ -27,13 +27,14 @@ function isSafeUrl(url) {
 
 function inlineToHtml(raw) {
   if (!raw) return "";
-  let s = escapeHtmlMd(raw);
+  // プレースホルダ（下のU+0000）と衝突しないよう、入力中のU+0000は先に除く。
+  let s = escapeHtmlMd(raw.replace(/\u0000/g, ""));
 
   // `コード`：中身をプレースホルダに退避し、後段の太字/斜体等の対象から外す。
   const codeStash = [];
   s = s.replace(/`([^`]+?)`/g, (_, code) => {
     codeStash.push(code);
-    return ` CODE${codeStash.length - 1} `;
+    return `\u0000${codeStash.length - 1}\u0000`;
   });
 
   // **太字** / __太字__
@@ -47,11 +48,14 @@ function inlineToHtml(raw) {
   // [文字](URL)
   s = s.replace(/\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (m, text, url) => {
     if (!isSafeUrl(url)) return text;
-    return `<a href="${escapeHtmlMd(url)}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    // urlは冒頭で & < > を既にエスケープ済み。属性値を抜け出せる引用符だけ追加で潰す
+    // （これが無いと [x](http://a"onmouseover="...) で属性注入XSSになる）。
+    const attrUrl = url.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    return `<a href="${attrUrl}" target="_blank" rel="noopener noreferrer">${text}</a>`;
   });
 
   // 退避しておいた`コード`を戻す（中身はHTMLエスケープ済みのまま＝安全）。
-  s = s.replace(/ CODE(\d+) /g, (_, i) => `<code>${codeStash[Number(i)]}</code>`);
+  s = s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codeStash[Number(i)]}</code>`);
   // 段落内の改行（Shift+Enterで入れた<br>を、app.js側のMarkdown書き出しが"\n"にしたもの）を
   // <br>へ戻す。空行区切り（＝新しい段落）とは違い、段落を分けない改行なので余白は付かない
   // （2026-09、Shift+Enterの改行が保存・再読み込みで失われる指摘を受けて対応）。
