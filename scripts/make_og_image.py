@@ -18,7 +18,7 @@ OUT_DIR = Path(__file__).resolve().parent.parent / "public"
 
 # ---- このアプリ固有の設定（2026-09、sidenote-pdf・sidenote-pdf-docを統合。他はsidenote-pdf-web） ----
 TITLE = "サイドノート作成ツール"
-DESC_LINES = ['テキスト・Markdown・PDFに注釈を。', '書式や項番も整えられます。']
+DESC_LINES = ['テキスト・Markdown・PDFに注釈を。']
 SQUARE_LINES = ['サイドノート', '作成ツール']
 MOCK = "md"            # plain / indent / md / web
 URL = "sidenote-tool.pages.dev"
