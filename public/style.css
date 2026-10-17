@@ -142,6 +142,8 @@ body {
 .toolbar .btn-outline, .toolbar .btn-primary, .toolbar .filebtn2 {
   width: 84px; font-size: 13px; height: 30px; padding: 0 8px;
 }
+/* 左の3つ（新しい作業／ファイルを開く／自動保存から再開）は最長ラベルに合わせて同じ幅にする。 */
+.toolbar #resumeDiscard, .toolbar #openLabel, .toolbar #resumeApply { width: 124px; }
 
 /* 上段（ファイル操作）は常に本文と一緒にスクロールする（固定機能は廃止し、代わりに
    ページ下の「↑」ボタン#backToTopBtn（この行の位置へ戻る）で一段操作へ戻れるようにした）。
